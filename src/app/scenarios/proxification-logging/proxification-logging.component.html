@@ -1,0 +1,286 @@
+<mat-card class="scenario-container">
+  <mat-card-header>
+    <mat-card-title>Proxification Logging</mat-card-title>
+    <mat-card-subtitle>Log all TC.tool.Proxification calls and behavior</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="content-layout">
+      <!-- Map Container -->
+      <div class="map-section">
+        <div id="mapa-proxification-logging" class="map-container">
+          <div *ngIf="isMapLoading" class="map-loading-overlay">
+            <mat-progress-spinner mode="indeterminate" diameter="50"></mat-progress-spinner>
+            <p>Loading map...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Panel -->
+      <div class="stats-section">
+        <mat-card class="stats-card">
+          <mat-card-header>
+            <mat-card-title>Statistics</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="stat-item">
+              <strong>Total Calls:</strong> {{ statistics.totalCalls }}
+            </div>
+            <div class="stat-item">
+              <strong>Instances:</strong> {{ statistics.instanceCount }}
+            </div>
+            <div class="stat-item">
+              <strong>Errors:</strong> {{ statistics.errorCount }}
+            </div>
+            <div class="stat-item">
+              <strong>Success Rate:</strong>
+              {{
+                statistics.totalCalls > 0
+                  ? (
+                      ((statistics.totalCalls - statistics.errorCount) /
+                        statistics.totalCalls) *
+                      100
+                    ).toFixed(1)
+                  : 0
+              }}%
+            </div>
+            <mat-divider></mat-divider>
+            <div class="method-counts">
+              <strong>Method Calls:</strong>
+              <div class="method-chips">
+                <mat-chip *ngFor="let entry of statistics.methodCounts | keyvalue" [matTooltip]="entry.key">
+                  {{ entry.key }}: {{ entry.value }}
+                </mat-chip>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Logs Panel -->
+      <div class="logs-section">
+        <mat-card class="logs-card">
+          <mat-card-header>
+            <mat-card-title>Logs</mat-card-title>
+            <div class="header-actions">
+              <button
+                mat-button
+                color="primary"
+                (click)="clearLogs()"
+                [disabled]="logs.length === 0"
+                aria-label="Clear all logs"
+              >
+                <mat-icon>clear_all</mat-icon>
+                <span>Clear</span>
+              </button>
+              <button
+                mat-button
+                color="primary"
+                (click)="exportLogs()"
+                [disabled]="logs.length === 0"
+                aria-label="Export logs to JSON file"
+              >
+                <mat-icon>file_download</mat-icon>
+                <span>Export</span>
+              </button>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <!-- Filters -->
+            <div class="filters">
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>Method</mat-label>
+                <mat-select [(ngModel)]="filterMethod" (selectionChange)="applyFilters()" aria-label="Filter by method">
+                  <mat-option value="all">All Methods</mat-option>
+                  <mat-option *ngFor="let method of getMethodList()" [value]="method">
+                    {{ method }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>Type</mat-label>
+                <mat-select [(ngModel)]="filterType" (selectionChange)="applyFilters()" aria-label="Filter by log type">
+                  <mat-option value="all">All Types</mat-option>
+                  <mat-option value="constructor">Constructor</mat-option>
+                  <mat-option value="method">Method Call</mat-option>
+                  <mat-option value="result">Result</mat-option>
+                  <mat-option value="error">Error</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filter-field" *ngIf="getInstanceIdList().length > 0">
+                <mat-label>Instance ID</mat-label>
+                <mat-select [(ngModel)]="filterInstanceId" (selectionChange)="applyFilters()" aria-label="Filter by instance ID">
+                  <mat-option value="all">All Instances</mat-option>
+                  <mat-option *ngFor="let instanceId of getInstanceIdList()" [value]="instanceId">
+                    {{ instanceId }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filter-field filter-search">
+                <mat-label>Search</mat-label>
+                  <input
+                  matInput
+                  type="text"
+                  [(ngModel)]="filterSearchText"
+                  (input)="applyFilters()"
+                  placeholder="Search in logs..."
+                  aria-label="Search logs"
+                />
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>Sort Order</mat-label>
+                <mat-select [(ngModel)]="sortOrder" (selectionChange)="applyFilters()" aria-label="Sort order">
+                  <mat-option value="newest">Newest First</mat-option>
+                  <mat-option value="oldest">Oldest First</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="filter-info" *ngIf="filteredLogs.length !== logs.length" role="status" aria-live="polite">
+              Showing {{ filteredLogs.length }} of {{ logs.length }} logs
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <!-- Log List -->
+            <div class="log-list">
+              <mat-accordion class="log-accordion" multi="true">
+                <mat-expansion-panel
+                  *ngFor="let log of filteredLogs; trackBy: trackByLogId"
+                  [expanded]="false"
+                  [class.log-constructor]="log.type === 'constructor'"
+                  [class.log-method]="log.type === 'method'"
+                  [class.log-result]="log.type === 'result'"
+                  [class.log-error]="log.type === 'error'"
+                  [attr.aria-label]="'Log entry: ' + log.method + ' ' + log.type"
+                >
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>
+                      <div class="log-header-compact">
+                        <span class="log-time">{{ formatTimestamp(log.timestamp) }}</span>
+                        <mat-chip [class]="'log-type-chip log-type-' + log.type">
+                          {{ log.type }}
+                        </mat-chip>
+                        <span class="log-method">{{ log.method }}</span>
+                        <span *ngIf="log.instanceId" class="log-instance">{{ log.instanceId }}</span>
+                        <span *ngIf="log.duration" class="log-duration">{{ log.duration }}ms</span>
+                      </div>
+                    </mat-panel-title>
+                    <mat-panel-description>
+                      <div class="log-actions">
+                        <button
+                          mat-icon-button
+                          color="primary"
+                          (click)="copyToClipboard(log); $event.stopPropagation()"
+                          matTooltip="Copy to clipboard"
+                          aria-label="Copy log to clipboard"
+                        >
+                          <mat-icon>content_copy</mat-icon>
+                        </button>
+                        <button
+                          mat-icon-button
+                          color="warn"
+                          (click)="removeLog(log.id); $event.stopPropagation()"
+                          matTooltip="Remove this log entry"
+                          aria-label="Remove log entry"
+                        >
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <div class="log-content">
+                    <!-- Caller Information -->
+                    <div *ngIf="log.callerInfo" class="log-caller-info">
+                      <mat-chip *ngIf="log.callerInfo.functionName" class="caller-chip">
+                        <mat-icon>code</mat-icon>
+                        {{ log.callerInfo.functionName }}
+                      </mat-chip>
+                      <mat-chip *ngIf="log.callerInfo.fileName" class="caller-chip">
+                        <mat-icon>description</mat-icon>
+                        {{ log.callerInfo.fileName }}
+                        <span *ngIf="log.callerInfo.lineNumber">:{{ log.callerInfo.lineNumber }}</span>
+                      </mat-chip>
+                    </div>
+
+                    <mat-divider *ngIf="log.callerInfo"></mat-divider>
+
+                    <!-- Request Context for Results/Errors -->
+                    <div *ngIf="log.type === 'result' || log.type === 'error'" class="log-request-context">
+                      <mat-expansion-panel>
+                        <mat-expansion-panel-header>
+                          <mat-panel-title>
+                            <mat-icon>info</mat-icon>
+                            <span>Request Context</span>
+                          </mat-panel-title>
+                        </mat-expansion-panel-header>
+                        <ng-container *ngIf="getRequestContext(log) as request">
+                          <div class="request-info">
+                            <p><strong>Method:</strong> {{ request.method }}</p>
+                            <p *ngIf="request.args && request.args.length > 0">
+                              <strong>Arguments:</strong>
+                            </p>
+                            <pre *ngIf="request.args && request.args.length > 0">{{ formatValue(request.args) }}</pre>
+                            <p *ngIf="request.callerInfo">
+                              <strong>Called from:</strong> {{ formatCallerInfo(request.callerInfo) }}
+                            </p>
+                          </div>
+                        </ng-container>
+                        <p *ngIf="!getRequestContext(log)" class="no-context">
+                          Request context not available
+                        </p>
+                      </mat-expansion-panel>
+                    </div>
+
+                    <mat-divider *ngIf="log.type === 'result' || log.type === 'error'"></mat-divider>
+
+                    <!-- Arguments -->
+                    <div *ngIf="log.args && log.args.length > 0" class="log-args">
+                      <strong>Arguments:</strong>
+                      <pre>{{ formatValue(log.args) }}</pre>
+                    </div>
+
+                    <!-- Result -->
+                    <div *ngIf="log.result !== undefined" class="log-result-content">
+                      <strong>Result:</strong>
+                      <pre>{{ formatValue(log.result) }}</pre>
+                    </div>
+
+                    <!-- Error -->
+                    <div *ngIf="log.error" class="log-error-content">
+                      <strong>Error:</strong>
+                      <pre>{{ formatValue(log.error) }}</pre>
+                    </div>
+
+                    <!-- Stack Trace (if available) -->
+                    <div *ngIf="log.callerInfo?.stackTrace" class="log-stack-trace">
+                      <mat-expansion-panel>
+                        <mat-expansion-panel-header>
+                          <mat-panel-title>
+                            <mat-icon>bug_report</mat-icon>
+                            <span>Stack Trace</span>
+                          </mat-panel-title>
+                        </mat-expansion-panel-header>
+                        <pre class="stack-trace">{{ log.callerInfo?.stackTrace }}</pre>
+                      </mat-expansion-panel>
+                    </div>
+                  </div>
+                </mat-expansion-panel>
+              </mat-accordion>
+              <div *ngIf="filteredLogs.length === 0" class="no-logs" role="status" aria-live="polite">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                <p>No logs match the current filters.</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+

@@ -47,6 +47,14 @@ declare global {
       Consts?: import('api-sitna').Consts;
       [key: string]: unknown;
     };
+    TC?: {
+      tool?: {
+        Proxification?: new (proxy: unknown, options?: unknown) => unknown;
+        [key: string]: unknown;
+      };
+      loadProjDefAsync?: (...args: unknown[]) => Promise<unknown>;
+      [key: string]: unknown;
+    };
     SITNA_BASE_URL?: string;
   }
 }

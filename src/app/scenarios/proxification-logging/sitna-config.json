@@ -1,0 +1,32 @@
+{
+  "layout": "js/api-sitna/layout/responsive",
+  "crs": "EPSG:25830",
+  "baseLayers": ["ign-base"],
+  "defaultBaseLayer": "ign-base",
+  "initialExtent": [541084.221, 4640788.225, 685574.4632, 4796618.764],
+  "controls": {
+    "layerCatalog": {
+      "div": "slot1",
+      "enableSearch": true,
+      "layers": [
+        {
+          "id": "test-wms-1",
+          "title": "Test WMS Layer 1",
+          "type": "WMS",
+          "url": "https://idena.navarra.es/ogc/wms",
+          "layerNames": ["IDENA:CartografiaBase"],
+          "opacity": 0.7
+        },
+        {
+          "id": "test-wms-2",
+          "title": "Test WMS Layer 2",
+          "type": "WMS",
+          "url": "http://www.ign.es/wms-inspire/geofisica",
+          "layerNames": ["Ultimos10dias"],
+          "opacity": 0.6
+        }
+      ]
+    }
+  }
+}
+

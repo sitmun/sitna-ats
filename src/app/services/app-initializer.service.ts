@@ -1,5 +1,4 @@
 import { Injectable, inject } from '@angular/core';
-import { patchSitnaMapLogging } from '../utils/sitna-meld-patch';
 import { LoggingService } from './logging.service';
 import { ErrorHandlingService } from './error-handling.service';
 
@@ -9,7 +8,6 @@ import { ErrorHandlingService } from './error-handling.service';
 export class AppInitializerService {
   private readonly logger = inject(LoggingService);
   private readonly errorHandler = inject(ErrorHandlingService);
-  private patchRestores: Array<() => void> = [];
   private readonly maxWaitAttempts = 10;
   private readonly waitIntervalMs = 50;
 
@@ -21,8 +19,8 @@ export class AppInitializerService {
       // Wait for SITNA script to load
       await this.waitForSITNA();
 
-      // Apply patches after SITNA is loaded
-      this.applyPatches();
+      // Note: Patching is done in scenarios, not globally
+      // This service only ensures SITNA is loaded
     } catch (error: unknown) {
       this.errorHandler.handleError(
         error,
@@ -62,34 +60,6 @@ export class AppInitializerService {
     });
   }
 
-  /**
-   * Apply patches after SITNA is loaded
-   */
-  private applyPatches(): void {
-    // Apply logging patches if needed
-    const restores = patchSitnaMapLogging({
-      enableLogging: true,
-      logLevel: 'info',
-    });
-    this.patchRestores.push(...restores);
-  }
-
-  /**
-   * Cleanup patches
-   */
-  cleanup(): void {
-    this.patchRestores.forEach((restore) => {
-      try {
-        restore();
-      } catch (error: unknown) {
-        this.errorHandler.handleError(
-          error,
-          'AppInitializerService.cleanup'
-        );
-      }
-    });
-    this.patchRestores = [];
-  }
 }
 
 /**

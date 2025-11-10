@@ -1,6 +1,7 @@
 import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { RouterModule, type Routes } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +13,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AppComponent } from './app.component';
 import { SitnaMapComponent } from './components/sitna-map/sitna-map.component';
@@ -38,9 +46,9 @@ function initializeRoutes(): Routes {
       return Array.from(this.scenarios.values());
     }
   })();
-  
+
   const registrations = registerScenarios(tempRegistry as any);
-  
+
   const scenarioRoutes: Routes = registrations.map((reg) => ({
     path: reg.route,
     component: reg.componentClass as any,
@@ -67,6 +75,7 @@ const routes: Routes = initializeRoutes();
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    CommonModule,
     HttpClientModule,
     FormsModule,
     MatChipsModule,
@@ -77,6 +86,14 @@ const routes: Routes = initializeRoutes();
     MatToolbarModule,
     MatSnackBarModule,
     MatListModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatSelectModule,
+    MatChipsModule,
+    MatExpansionModule,
+    MatButtonToggleModule,
+    MatDividerModule,
+    MatProgressSpinnerModule,
     RouterModule.forRoot(routes, {
       // Use hash location strategy to prevent router from intercepting asset requests
       // URLs will be: http://localhost:4200/#/scenario-01 instead of http://localhost:4200/scenario-01

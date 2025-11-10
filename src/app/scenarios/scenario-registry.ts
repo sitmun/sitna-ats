@@ -6,6 +6,10 @@ import {
   BasicMapInitializationComponent,
   SCENARIO_METADATA as BasicMapInitMetadata,
 } from './basic-map-initialization/basic-map-initialization.component';
+import {
+  ProxificationLoggingComponent,
+  SCENARIO_METADATA as ProxificationLoggingMetadata,
+} from './proxification-logging/proxification-logging.component';
 
 /**
  * Register all scenarios with the registry service
@@ -19,6 +23,11 @@ export function registerScenarios(
       ...BasicMapInitMetadata,
       componentClass: BasicMapInitializationComponent,
       selector: 'app-basic-map-initialization',
+    },
+    {
+      ...ProxificationLoggingMetadata,
+      componentClass: ProxificationLoggingComponent,
+      selector: 'app-proxification-logging',
     },
   ];
 
@@ -35,6 +44,7 @@ export function registerScenarios(
 export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[] {
   return [
     BasicMapInitializationComponent,
+    ProxificationLoggingComponent,
   ];
 }
 
