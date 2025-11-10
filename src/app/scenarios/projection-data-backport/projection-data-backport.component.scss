@@ -1,0 +1,122 @@
+@use '@angular/material' as mat;
+
+.scenario-container {
+  // Remove padding - Material Card handles its own padding
+  // Use margin if spacing from viewport edge is needed
+}
+
+.findings-toggle-section {
+  padding: 0 16px 16px 16px;
+  border-bottom: 1px solid mat.get-color-from-palette(mat.$grey-palette, 200);
+
+  .findings-toggle-button {
+    width: 100%;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+    font-weight: 500;
+
+    mat-icon {
+      margin-right: 8px;
+
+      &:first-child {
+        margin-right: 4px;
+      }
+    }
+  }
+}
+
+.controls-section {
+  margin-bottom: 24px;
+
+  mat-card {
+    // Material Card provides default padding
+  }
+
+  .epsg-input {
+    width: 100%;
+    max-width: 300px;
+    margin-right: 16px;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .loading-bar {
+    margin-top: 16px;
+  }
+}
+
+.results-section {
+  margin-bottom: 24px;
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: mat.get-color-from-palette(mat.$red-palette, 600);
+    padding: 16px;
+    background-color: mat.get-color-from-palette(mat.$red-palette, 50);
+    border-radius: 4px;
+  }
+
+  .result-data {
+    .result-item {
+      margin-bottom: 12px;
+
+      strong {
+        display: inline-block;
+        min-width: 100px;
+        color: mat.get-color-from-palette(mat.$grey-palette, 700);
+      }
+
+      .proj4-code {
+        display: inline-block;
+        padding: 4px 8px;
+        background-color: mat.get-color-from-palette(mat.$grey-palette, 100);
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        word-break: break-all;
+      }
+
+      .wkt-pre {
+        margin-top: 8px;
+        padding: 12px;
+        background-color: mat.get-color-from-palette(mat.$grey-palette, 50);
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 0.85em;
+        line-height: 1.4;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    }
+  }
+}
+
+.cache-section {
+  margin-bottom: 24px;
+
+  .cached-codes {
+    margin-top: 16px;
+
+    mat-chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  }
+}
+
+.map-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid mat.get-color-from-palette(mat.$grey-palette, 300);
+  margin-top: 16px;
+  border-radius: 4px;
+}
+

@@ -19,10 +19,10 @@ module.exports = {
       SITNA_BASE_URL: JSON.stringify('/js/api-sitna/')
     }),
     // Copia los recursos necesarios a la carpeta de publicación
-    new CopyWebpackPlugin({ 
+    new CopyWebpackPlugin({
       patterns: [
-        { 
-          from: path.join(apiSitnaSource, 'config'), 
+        {
+          from: path.join(apiSitnaSource, 'config'),
           to: 'js/api-sitna/config',
           globOptions: {
             ignore: ['**/predefined-layers.json']
@@ -30,8 +30,8 @@ module.exports = {
         },
         // Copy custom predefined-layers.json to override npm library version
         // This must be done via webpack to ensure it runs after other copies
-        { 
-          from: path.join(__dirname, 'src/assets/config/predefined-layers.json'), 
+        {
+          from: path.join(__dirname, 'src/assets/config/predefined-layers.json'),
           to: 'js/api-sitna/config/predefined-layers.json',
           force: true // Overwrite if file exists
         },
@@ -39,6 +39,12 @@ module.exports = {
         { from: path.join(apiSitnaSource, 'layout'), to: 'js/api-sitna/layout' },
         { from: path.join(apiSitnaSource, 'lib'), to: 'js/api-sitna/lib' },
         { from: path.join(apiSitnaSource, 'resources'), to: 'js/api-sitna/resources' },
+        // Copy CRS data files for backported getProjectionData (version 4.8.0 format)
+        {
+          from: path.join(__dirname, 'src/assets/resources/data/crs'),
+          to: 'js/api-sitna/resources/data/crs',
+          noErrorOnMissing: true
+        },
         { from: path.join(apiSitnaSource, 'wmts'), to: 'js/api-sitna/wmts' }
       ]
     })

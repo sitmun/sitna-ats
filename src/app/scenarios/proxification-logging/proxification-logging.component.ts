@@ -84,6 +84,8 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
 export class ProxificationLoggingComponent
   implements OnInit, OnDestroy
 {
+  readonly metadata = SCENARIO_METADATA;
+
   // ============================================================================
   // Constants
   // ============================================================================

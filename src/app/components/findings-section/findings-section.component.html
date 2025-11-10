@@ -1,0 +1,61 @@
+<div class="findings-section" *ngIf="findings.length > 0">
+  <mat-card>
+    <mat-card-header *ngIf="!hideTitle">
+      <mat-card-title>
+        <mat-icon>find_in_page</mat-icon>
+        Findings & Issues
+      </mat-card-title>
+      <mat-card-subtitle *ngIf="summary">{{ summary }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content [class.no-header]="hideTitle">
+      <mat-accordion [multi]="true">
+        <mat-expansion-panel
+          *ngFor="let finding of findings; trackBy: trackByFindingId"
+          [expanded]="!collapsed"
+          [class.finding-issue]="finding.type === 'issue'"
+          [class.finding-solution]="finding.type === 'solution'"
+          [class.finding-learning]="finding.type === 'learning'"
+          [class.finding-note]="finding.type === 'note'"
+          [attr.aria-label]="finding.title + ' - ' + getTypeLabel(finding.type)"
+        >
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon [color]="getFindingColor(finding.type)">
+                {{ getFindingIcon(finding.type) }}
+              </mat-icon>
+              <span class="finding-title">{{ finding.title }}</span>
+            </mat-panel-title>
+            <mat-panel-description>
+              <span [innerHTML]="renderMarkdown(finding.description)"></span>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <div class="finding-content">
+            <div *ngIf="finding.details" class="finding-details">
+              <div [innerHTML]="renderMarkdown(finding.details)" class="markdown-content"></div>
+            </div>
+
+            <div *ngIf="finding.solution" class="finding-solution">
+              <div [innerHTML]="renderMarkdown(finding.solution)" class="markdown-content"></div>
+            </div>
+
+            <div *ngIf="finding.codeSnippet" class="finding-code">
+              <strong>Code/Error:</strong>
+              <pre role="region" aria-label="Code snippet"><code>{{ finding.codeSnippet }}</code></pre>
+            </div>
+
+            <div *ngIf="finding.references && finding.references.length > 0" class="finding-references">
+              <strong>References:</strong>
+              <ul>
+                <li *ngFor="let ref of finding.references">
+                  <a [href]="ref" target="_blank" rel="noopener noreferrer">{{ ref }}</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </mat-card-content>
+  </mat-card>
+</div>
+

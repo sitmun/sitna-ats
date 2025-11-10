@@ -20,10 +20,12 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AppComponent } from './app.component';
 import { SitnaMapComponent } from './components/sitna-map/sitna-map.component';
 import { ScenarioSelectorComponent } from './components/scenario-selector/scenario-selector.component';
+import { FindingsSectionComponent } from './components/findings-section/findings-section.component';
 import {
   getScenarioComponents,
   registerScenarios,
@@ -70,6 +72,7 @@ const routes: Routes = initializeRoutes();
     AppComponent,
     SitnaMapComponent,
     ScenarioSelectorComponent,
+    FindingsSectionComponent,
     ...getScenarioComponents(),
   ],
   imports: [
@@ -94,6 +97,7 @@ const routes: Routes = initializeRoutes();
     MatButtonToggleModule,
     MatDividerModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     RouterModule.forRoot(routes, {
       // Use hash location strategy to prevent router from intercepting asset requests
       // URLs will be: http://localhost:4200/#/scenario-01 instead of http://localhost:4200/scenario-01

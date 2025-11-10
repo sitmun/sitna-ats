@@ -1,0 +1,136 @@
+<mat-card class="scenario-container">
+  <mat-card-header>
+    <mat-card-title>{{ metadata.name }}</mat-card-title>
+    <mat-card-subtitle>{{ metadata.description }}</mat-card-subtitle>
+  </mat-card-header>
+  <div class="findings-toggle-section">
+    <button
+      mat-button
+      (click)="showFindings = !showFindings"
+      [attr.aria-expanded]="showFindings"
+      aria-label="Toggle findings section"
+      class="findings-toggle-button"
+    >
+      <mat-icon>{{ showFindings ? 'expand_less' : 'expand_more' }}</mat-icon>
+      <mat-icon>find_in_page</mat-icon>
+      <span>Findings & Issues</span>
+    </button>
+    <app-findings-section
+      *ngIf="showFindings"
+      [findings]="findings"
+      [collapsed]="true"
+      [hideTitle]="true">
+    </app-findings-section>
+  </div>
+  <mat-card-content>
+    <div class="controls-section">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Test Controls</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="epsg-input">
+            <mat-label>EPSG Code</mat-label>
+            <input matInput [(ngModel)]="epsgCode" placeholder="e.g., 4326, 25830, 3857" />
+            <mat-hint>Enter an EPSG code to test projection data retrieval</mat-hint>
+          </mat-form-field>
+
+          <div class="button-group">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="testGetProjectionDataSync()"
+              [disabled]="isLoading || !epsgCode"
+            >
+              Test Sync
+            </button>
+            <button
+              mat-raised-button
+              color="accent"
+              (click)="testGetProjectionDataAsync()"
+              [disabled]="isLoading || !epsgCode"
+            >
+              Test Async
+            </button>
+            <button
+              mat-button
+              (click)="updateCachedCodes()"
+            >
+              Refresh Cache List
+            </button>
+          </div>
+
+          <mat-progress-bar
+            *ngIf="isLoading"
+            mode="indeterminate"
+            class="loading-bar"
+          ></mat-progress-bar>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="results-section" *ngIf="testResult || testError">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Test Results</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="testError" class="error-message">
+            <mat-icon color="warn">error</mat-icon>
+            <span>{{ testError }}</span>
+          </div>
+          <div *ngIf="testResult" class="result-data">
+            <div class="result-item">
+              <strong>Code:</strong> {{ testResult.code }}
+            </div>
+            <div class="result-item">
+              <strong>Name:</strong> {{ testResult.name }}
+            </div>
+            <div class="result-item">
+              <strong>Kind:</strong> {{ testResult.kind }}
+            </div>
+            <div class="result-item">
+              <strong>Unit:</strong> {{ testResult.unit || 'N/A' }}
+            </div>
+            <div class="result-item">
+              <strong>Accuracy:</strong> {{ testResult.accuracy !== null ? testResult.accuracy : 'N/A' }}
+            </div>
+            <div class="result-item">
+              <strong>BBox:</strong> {{ testResult.bbox.join(', ') }}
+            </div>
+            <div class="result-item">
+              <strong>Proj4:</strong>
+              <code class="proj4-code">{{ testResult.proj4 }}</code>
+            </div>
+            <div class="result-item">
+              <strong>WKT:</strong>
+              <details>
+                <summary>View WKT (click to expand)</summary>
+                <pre class="wkt-pre">{{ testResult.wkt }}</pre>
+              </details>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="cache-section">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Cache Status</mat-card-title>
+          <mat-card-subtitle>{{ cachedCodes.length }} projection(s) cached</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="cached-codes">
+            <mat-chip-set>
+              <mat-chip *ngFor="let code of cachedCodes">{{ code }}</mat-chip>
+            </mat-chip-set>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div id="mapa-projection-data-backport" class="map-container"></div>
+  </mat-card-content>
+</mat-card>
+

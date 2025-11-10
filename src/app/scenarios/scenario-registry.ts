@@ -10,6 +10,10 @@ import {
   ProxificationLoggingComponent,
   SCENARIO_METADATA as ProxificationLoggingMetadata,
 } from './proxification-logging/proxification-logging.component';
+import {
+  ProjectionDataBackportComponent,
+  SCENARIO_METADATA as ProjectionDataBackportMetadata,
+} from './projection-data-backport/projection-data-backport.component';
 
 /**
  * Register all scenarios with the registry service
@@ -29,6 +33,11 @@ export function registerScenarios(
       componentClass: ProxificationLoggingComponent,
       selector: 'app-proxification-logging',
     },
+    {
+      ...ProjectionDataBackportMetadata,
+      componentClass: ProjectionDataBackportComponent,
+      selector: 'app-projection-data-backport',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -45,6 +54,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
   return [
     BasicMapInitializationComponent,
     ProxificationLoggingComponent,
+    ProjectionDataBackportComponent,
   ];
 }
 

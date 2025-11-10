@@ -28,6 +28,7 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
 export class BasicMapInitializationComponent
   implements OnInit, OnDestroy
 {
+  readonly metadata = SCENARIO_METADATA;
   map: SitnaMap | null = null;
   private readonly configService = inject(SitnaConfigService);
   private readonly logger = inject(LoggingService);
