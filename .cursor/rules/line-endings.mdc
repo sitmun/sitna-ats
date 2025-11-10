@@ -1,0 +1,35 @@
+---
+description: Always use LF (Unix) line endings for all files
+globs: **/*
+alwaysApply: true
+---
+
+# Line Endings: Always Use LF
+
+## Rule
+
+**Always use LF (Unix-style) line endings (`\n`) when creating or editing files.**
+
+## Context
+
+- This is a macOS development environment
+- The project uses `.editorconfig` with `end_of_line = lf`
+- Git is configured with `core.autocrlf = input`
+- All files should use LF line endings, never CRLF (`\r\n`)
+
+## Requirements
+
+When creating or editing files:
+1. **Always use LF line endings** - Never use CRLF or CR
+2. **Ensure files end with a newline** - Files should end with a single LF character
+3. **Normalize existing files** - If editing a file that has CRLF, convert it to LF
+
+## Implementation
+
+- The `write` tool automatically uses LF on Unix/macOS systems
+- The `search_replace` tool preserves existing line endings, so ensure source files use LF
+- If you encounter CRLF in existing files, normalize them to LF
+
+## Verification
+
+After creating or editing files, the line endings should be LF. On macOS/Linux systems, this is the default behavior, but be explicit about it.

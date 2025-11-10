@@ -1,0 +1,32 @@
+{
+  "layout": "layout/ctl-container",
+  "proxy": "proxy/proxy.ashx?",
+  "controls": {
+    "workLayerManager": {
+      "div": "slot1"
+    },
+    "layerCatalog": {
+      "div": "slot2",
+      "enableSearch": true,
+      "layers": [
+        {
+          "id": "idena",
+          "title": "IDENA",
+          "hideTitle": true,
+          "type": "WMS",
+          "url": "//idena.navarra.es/ogc/wms",
+          "hideTree": false
+        },
+        {
+          "id": "sismica",
+          "title": "Información sísmica y volcánica",
+          "type": "WMS",
+          "url": "//www.ign.es/wms-inspire/geofisica",
+          "layerNames": ["Ultimos10dias", "Ultimos30dias", "Ultimos365dias"],
+          "hideTree": false
+        }
+      ]
+    }
+  }
+}
+

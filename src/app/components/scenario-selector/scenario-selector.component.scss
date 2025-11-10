@@ -1,0 +1,194 @@
+@use '@angular/material' as mat;
+@use 'sass:map';
+@use 'styles/theme' as theme;
+
+.scenario-selector {
+  padding: 16px;
+}
+
+.scenario-selector h2 {
+  margin-bottom: 16px;
+  @include mat.typography-level(theme.$typography-config, 'headline-6');
+}
+
+.filters {
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: mat.get-color-from-palette(mat.$grey-palette, 50);
+  border-radius: 8px;
+  border: 1px solid mat.get-color-from-palette(mat.$grey-palette, 200);
+}
+
+.filter-group {
+  margin-bottom: 16px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  @include mat.typography-level(theme.$typography-config, 'caption');
+  color: mat.get-color-from-palette(mat.$grey-palette, 700);
+}
+
+.filter-group mat-form-field {
+  width: 100%;
+  max-width: 400px;
+}
+
+mat-chip-set.chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip-filter {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  display: inline-flex;
+  align-items: center;
+}
+
+mat-chip.tag-chip-filter:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+mat-chip.tag-chip-filter:focus {
+  outline: 2px solid mat.get-color-from-palette(mat.$blue-palette, 700);
+  outline-offset: 2px;
+}
+
+mat-chip.tag-chip-filter:focus-visible {
+  outline: 2px solid mat.get-color-from-palette(mat.$blue-palette, 700);
+  outline-offset: 2px;
+}
+
+mat-chip.tag-chip-filter.selected {
+  font-weight: 600;
+}
+
+.tag-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  border-radius: 10px;
+  color: white;
+  @include mat.typography-level(theme.$typography-config, 'caption');
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+  transform: translateX(6px);
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid mat.get-color-from-palette(mat.$grey-palette, 200);
+}
+
+.filter-count {
+  color: mat.get-color-from-palette(mat.$grey-palette, 500);
+  @include mat.typography-level(theme.$typography-config, 'body-2');
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.scenario-card {
+  cursor: pointer;
+  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.scenario-card:hover {
+  @include mat.elevation(8);
+}
+
+.scenario-card:focus {
+  outline: 2px solid mat.get-color-from-palette(mat.$blue-palette, 700);
+  outline-offset: 2px;
+  @include mat.elevation(8);
+}
+
+.scenario-card:focus-visible {
+  outline: 2px solid mat.get-color-from-palette(mat.$blue-palette, 700);
+  outline-offset: 2px;
+  @include mat.elevation(8);
+}
+
+.scenario-card mat-card-content {
+  flex-grow: 1;
+}
+
+.scenario-card mat-card-content p {
+  color: mat.get-color-from-palette(mat.$grey-palette, 500);
+  margin-bottom: 16px;
+}
+
+.scenario-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.scenario-tag-chip {
+  @include mat.typography-level(theme.$typography-config, 'caption');
+  font-weight: 500;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  margin: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  color: white;
+}
+
+.scenario-tag-chip:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.scenario-tag-chip:focus {
+  outline: 2px solid mat.get-color-from-palette(mat.$grey-palette, 100);
+  outline-offset: 2px;
+}
+
+.scenario-tag-chip:focus-visible {
+  outline: 2px solid mat.get-color-from-palette(mat.$grey-palette, 100);
+  outline-offset: 2px;
+}
+
+.scenario-tag-chip.tag-selected {
+  opacity: 1;
+  @include mat.elevation(2);
+}
+
+.no-results {
+  text-align: center;
+  padding: 48px;
+  color: mat.get-color-from-palette(mat.$grey-palette, 500);
+}
+
+.no-results p {
+  margin-bottom: 16px;
+}
+
+.no-results-hint {
+  @include mat.typography-level(theme.$typography-config, 'body-2');
+  color: mat.get-color-from-palette(mat.$grey-palette, 600);
+  margin-bottom: 0;
+}

@@ -1,0 +1,30 @@
+import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { AppModule } from './app/app.module';
+
+async function bootstrap(): Promise<void> {
+  // Define SITNA_BASE_URL before importing the API (required by SITNA documentation)
+  (globalThis as { SITNA_BASE_URL?: string }).SITNA_BASE_URL = '/js/api-sitna/';
+
+  try {
+    await import('api-sitna');
+  } catch (error: unknown) {
+    // Use console directly here as this is bootstrap code before Angular services are available
+    // eslint-disable-next-line no-console
+    console.error('Failed to load SITNA library', error);
+    throw error;
+  }
+
+  platformBrowserDynamic()
+    .bootstrapModule(AppModule)
+    .catch((err: unknown) => {
+      // Use console directly here as this is bootstrap code before Angular services are available
+      // eslint-disable-next-line no-console
+      console.error('Angular bootstrap failed', err);
+    });
+}
+
+bootstrap().catch((err: unknown) => {
+  // Use console directly here as this is bootstrap code before Angular services are available
+  // eslint-disable-next-line no-console
+  console.error('Angular bootstrap failed', err);
+});

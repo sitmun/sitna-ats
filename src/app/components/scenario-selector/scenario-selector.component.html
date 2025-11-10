@@ -1,0 +1,118 @@
+<div class="scenario-selector">
+  <h2>Select a Scenario</h2>
+  
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by name</mat-label>
+        <input
+          matInput
+          id="name-filter"
+          type="text"
+          [(ngModel)]="nameFilter"
+          (input)="onNameFilterInput($event)"
+          (keydown.escape)="clearFilters()"
+          placeholder="Search scenarios..."
+          aria-label="Filter scenarios by name"
+        />
+      </mat-form-field>
+    </div>
+    
+    <div class="filter-group">
+      <label id="tags-filter-label">Filter by tags:</label>
+      <mat-chip-set
+        class="chip-container"
+        role="group"
+        aria-labelledby="tags-filter-label"
+      >
+        <mat-chip
+          *ngFor="let tag of availableTags; trackBy: trackByTagName"
+          (click)="onTagToggle(tag)"
+          (keydown)="onKeyDown($event, 'toggle', tag)"
+          [class.selected]="isTagSelected(tag)"
+          [class.tag-chip-filter]="true"
+          [attr.aria-pressed]="isTagSelected(tag)"
+          [attr.aria-label]="getTagAriaLabel(tag)"
+          [style.background-color]="isTagSelected(tag) ? getTagColor(tag) : 'transparent'"
+          [style.color]="isTagSelected(tag) ? 'white' : 'inherit'"
+          [style.border-color]="getTagColor(tag)"
+          role="button"
+          tabindex="0"
+        >
+          {{ tag }}
+          <span
+            *ngIf="getTagCount(tag) > 0"
+            class="tag-count-badge"
+            [style.background-color]="getTagColor(tag)"
+            [attr.aria-label]="getTagCount(tag) + ' scenarios'"
+          >
+            {{ getTagCount(tag) }}
+          </span>
+        </mat-chip>
+      </mat-chip-set>
+    </div>
+    
+    <div class="filter-actions" *ngIf="selectedTags.length > 0 || nameFilter">
+      <button
+        type="button"
+        mat-button
+        color="warn"
+        (click)="clearFilters()"
+        (keydown)="onKeyDown($event, 'clear')"
+        aria-label="Clear all filters"
+      >
+        Clear Filters
+      </button>
+      <span class="filter-count" aria-live="polite" aria-atomic="true">
+        Showing {{ filteredScenarios.length }} of {{ allScenarios.length }} scenarios
+      </span>
+    </div>
+  </div>
+
+  <!-- Scenarios -->
+  <div *ngIf="filteredScenarios.length > 0">
+    <div class="scenario-grid">
+      <mat-card
+        *ngFor="let scenario of filteredScenarios; trackBy: trackByScenarioRoute"
+        class="scenario-card mat-elevation-z2"
+        (click)="navigateToScenario(scenario.route)"
+        (keydown.enter)="navigateToScenario(scenario.route)"
+        (keydown.space)="navigateToScenario(scenario.route); $event.preventDefault()"
+        [attr.aria-label]="'View scenario: ' + scenario.name + '. ' + scenario.description"
+        tabindex="0"
+        role="button"
+      >
+        <mat-card-header>
+          <mat-card-title>{{ scenario.name }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ scenario.description }}</p>
+          <div class="scenario-tags">
+            <mat-chip
+              *ngFor="let tag of scenario.tags; trackBy: trackByTagName"
+              class="scenario-tag-chip"
+              [class.tag-selected]="isTagSelected(tag)"
+              [style.background-color]="getTagColor(tag)"
+              (click)="onCardTagClick($event, tag)"
+              (keydown)="onCardTagKeyDown($event, tag)"
+              [attr.aria-label]="'Filter by ' + tag + ' tag'"
+              [attr.aria-pressed]="isTagSelected(tag)"
+              role="button"
+              tabindex="0"
+            >
+              {{ tag }}
+            </mat-chip>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+  
+  <!-- No results -->
+  <div *ngIf="filteredScenarios.length === 0 && (selectedTags.length > 0 || nameFilter)" class="no-results" aria-live="polite">
+    <p>No scenarios match your filters.</p>
+    <p class="no-results-hint">Try adjusting your filters or clear them to see all scenarios.</p>
+  </div>
+</div>
+

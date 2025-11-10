@@ -1,0 +1,10 @@
+{
+    "search.exclude": {
+        "**/*.angular": true,
+        "**/node_modules": false
+    },
+    "search.useIgnoreFiles": false,
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true
+}

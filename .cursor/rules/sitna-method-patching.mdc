@@ -1,0 +1,87 @@
+---
+description: Guidelines for using patchSitnaMapMethods utility for SITNA API method patching
+globs: **/scenarios/**/*.component.ts
+alwaysApply: false
+---
+# SITNA Method Patching with patchSitnaMapMethods
+
+## Overview
+
+The `patchSitnaMapMethods` utility in `src/app/utils/sitna-meld-patch.ts` provides a type-safe way to patch SITNA.Map methods using the meld AOP (Aspect-Oriented Programming) library. This allows intercepting and modifying method calls without directly modifying the SITNA library code.
+
+## Key Concepts
+
+- **Location**: `src/app/utils/sitna-meld-patch.ts`
+- **Purpose**: Patch SITNA.Map methods using meld AOP library
+- **Pattern**: Use `patchSitnaMapMethods()` with typed method patches
+- **Best Practice**: Always use `createMeldPatchManager()` to manage patches and restore on component destroy
+
+## Usage Pattern
+
+### Basic Structure
+
+```typescript
+import {
+  patchSitnaMapMethods,
+  createMeldPatchManager,
+} from '../../utils/sitna-meld-patch';
+
+export class MyComponent implements OnDestroy {
+  private patchManager = createMeldPatchManager();
+
+  constructor() {
+    afterNextRender(() => {
+      this.patchMethods();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.patchManager.restoreAll();
+  }
+
+  private patchMethods(): void {
+    // Define typed method signatures for better type safety
+    type LoadedMethod = (callback?: () => void) => Promise<void>;
+    type AddLayerMethod = (layer: string | LayerOptions | Layer, callback?: (layer: Layer) => void) => Promise<Layer>;
+
+    const component = this;
+    const restores = patchSitnaMapMethods({
+      loaded: function (this: SitnaMap, original: LoadedMethod, callback?: () => void): Promise<void> {
+        component.logger.warn('Map loaded() called');
+        return original.call(this, callback);
+      },
+      addLayer: function (this: SitnaMap, original: AddLayerMethod, layer: string | LayerOptions | Layer, callback?: (layer: Layer) => void): Promise<Layer> {
+        component.logger.warn('addLayer() called with', layer);
+        return original.call(this, layer, callback);
+      },
+    });
+
+    this.patchManager.add(restores);
+  }
+}
+```
+
+## Best Practices
+
+1. **Always use `createMeldPatchManager()`**: This ensures patches are properly tracked and can be restored when components are destroyed, preventing memory leaks.
+
+2. **Use regular functions, not arrow functions**: Regular functions allow `this` to refer to the map instance, which is essential for proper method execution.
+
+3. **Define typed method signatures**: Create type aliases (e.g., `LoadedMethod`, `AddLayerMethod`) for better type safety and IntelliSense support.
+
+4. **Always call the original method**: The `original` parameter must be called to maintain the original method's behavior. You can modify arguments or return values, but the original should be invoked.
+
+5. **Handle change detection**: Patches run outside Angular's zone. Use `ChangeDetectorRef.detectChanges()` if you need to trigger change detection after patched method calls.
+
+6. **Restore patches in ngOnDestroy**: Always call `patchManager.restoreAll()` in the component's `ngOnDestroy` lifecycle hook to clean up patches.
+
+## Important Notes
+
+- Patches are applied to `SITNA.Map.prototype`, affecting all map instances
+- The `original` parameter is a wrapper that prevents infinite recursion
+- Patches should be applied after SITNA is loaded (use `afterNextRender` or check for `window.SITNA`)
+- Type safety: Define method types for better IntelliSense and compile-time checking
+
+## Reference Implementation
+
+See `@sitna-meld-patch.ts` for the complete implementation and additional utility functions.

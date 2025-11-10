@@ -1,0 +1,15 @@
+[
+    {
+      "id": "ign-base",
+      "title": "Callejero \r\n (IGN ES)",
+      "type": "WMTS",
+      "url": "https://www.ign.es/wmts/ign-base",
+      "encoding": "KVP",
+      "layerNames": "IGNBaseTodo",
+      "matrixSet": "EPSG:25830",
+      "format": "image/jpeg",
+      "thumbnail": "css/img/thumb-basemap_ign.png",
+      "fallbackLayer": "ign-base-dyn",
+      "overviewMapLayer": "ign-base"
+    }
+  ]
