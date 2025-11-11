@@ -1,10 +1,5 @@
 @use '@angular/material' as mat;
 
-.scenario-container {
-  // Remove padding - Material Card handles its own padding
-  // Use margin if spacing from viewport edge is needed
-}
-
 .findings-toggle-section {
   padding: 0 16px 16px 16px;
   border-bottom: 1px solid mat.get-color-from-palette(mat.$grey-palette, 200);
@@ -27,10 +22,6 @@
 
 .controls-section {
   margin-bottom: 24px;
-
-  mat-card {
-    // Material Card provides default padding
-  }
 
   .epsg-input {
     width: 100%;

@@ -10,19 +10,6 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  // Material typography config handles font-family
-}
-
-/* Ensure Material typography is applied globally */
-.mat-typography {
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  
-  mat-card-content {
-    font-family: inherit;
-    
-    p, div, span:not(.mat-mdc-button-persistent-ripple):not(.mdc-button__ripple):not(.scenario-tag-chip) {
-      font-family: inherit;
-    }
-  }
 }
 

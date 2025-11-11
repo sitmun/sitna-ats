@@ -105,46 +105,58 @@ export type MethodPatch<T extends (...args: unknown[]) => unknown> = (
 
 /**
  * Type for method patches record
- * Accepts functions where the first parameter (original) can be any function type,
- * allowing specific method types like LoadedMethod or AddLayerMethod to be used
- * directly in function signatures without type assertions.
- * Uses 'any' for the original parameter to allow maximum flexibility.
+ *
+ * Accepts functions where the first parameter (original) represents the original method.
+ * This type intentionally uses unknown for flexibility while maintaining type safety.
+ *
+ * Usage pattern:
+ * ```typescript
+ * type LoadedMethod = (callback?: () => void) => Promise<void>;
+ *
+ * const patches: SitnaMethodPatches = {
+ *   loaded: function(this: SitnaMap, original: LoadedMethod, callback?: () => void): Promise<void> {
+ *     console.log('loaded called');
+ *     return original.call(this, callback);
+ *   }
+ * };
+ * ```
  */
 export type SitnaMethodPatches = {
   [K in string]: (
-    original: any,
-    ...args: any[]
-  ) => any;
+    this: unknown,
+    original: (...args: unknown[]) => unknown,
+    ...args: unknown[]
+  ) => unknown;
 };
 
 /**
  * Patch specific SITNA.Map methods with custom behavior using meld AOP library.
- * 
+ *
  * This function allows you to intercept and modify SITNA.Map method calls using
  * Aspect-Oriented Programming (AOP) patterns. Patches are applied using meld's
  * `around` advice, which wraps the original method execution.
- * 
+ *
  * **Important**: Always use `createMeldPatchManager()` to manage patches and ensure
  * they are properly restored when components are destroyed to prevent memory leaks
  * and unexpected behavior.
- * 
+ *
  * @param methodPatches - An object mapping method names to patch functions.
  *   Each patch function receives:
  *   - `original`: A wrapper function that calls the original method
  *   - `...args`: The original method arguments
  *   The patch function should return the result of calling `original` (or a modified result).
- * 
+ *
  * @returns An array of restore functions. Call each function to remove the corresponding patch.
- * 
+ *
  * @example
  * ```typescript
  * // Define typed method signatures for better type safety
  * type LoadedMethod = (callback?: () => void) => Promise<void>;
  * type AddLayerMethod = (layer: string | LayerOptions | Layer, callback?: (layer: Layer) => void) => Promise<Layer>;
- * 
+ *
  * const component = this;
  * const patchManager = createMeldPatchManager();
- * 
+ *
  * const restores = patchSitnaMapMethods({
  *   loaded: function (this: SitnaMap, original: LoadedMethod, callback?: () => void): Promise<void> {
  *     component.logger.warn('Map loaded() called');
@@ -157,14 +169,14 @@ export type SitnaMethodPatches = {
  *     return original.call(this, layer, callback);
  *   },
  * });
- * 
+ *
  * // Register patches with manager for automatic cleanup
  * patchManager.add(restores);
- * 
+ *
  * // In ngOnDestroy:
  * patchManager.restoreAll();
  * ```
- * 
+ *
  * @remarks
  * - Patches are applied to `SITNA.Map.prototype`, affecting all map instances
  * - Use regular functions (not arrow functions) so `this` refers to the map instance
@@ -172,7 +184,7 @@ export type SitnaMethodPatches = {
  * - Always call `original` to maintain the original method's behavior
  * - Type safety: Define method types (e.g., `LoadedMethod`, `AddLayerMethod`) for better IntelliSense
  * - Patches run outside Angular's zone - use `ChangeDetectorRef.detectChanges()` if needed
- * 
+ *
  * @see {@link createMeldPatchManager} For managing multiple patches and cleanup
  * @see {@link SitnaMethodPatches} For the type definition of method patches
  */
@@ -207,8 +219,8 @@ export function patchSitnaMapMethods(
           const originalWrapper = (...args: unknown[]): unknown => {
             // If called with the same args as joinPoint, use proceed()
             // Otherwise use proceedApply with the new args
-            if (args.length === 0 || 
-                (args.length === joinPoint.args.length && 
+            if (args.length === 0 ||
+                (args.length === joinPoint.args.length &&
                  args.every((arg, i) => arg === joinPoint.args[i]))) {
               return joinPoint.proceed();
             }
@@ -244,8 +256,8 @@ export function createMeldPatchManager(): {
           try {
             restore();
           } catch (error: unknown) {
-            // Use console directly here as this is a utility function that may be called
-            // before Angular services are available
+            // Direct console usage is intentional: This utility may be called during cleanup
+            // before Angular services are available or after they've been destroyed.
             // eslint-disable-next-line no-console
             console.error('Error restoring meld patch:', error);
           }

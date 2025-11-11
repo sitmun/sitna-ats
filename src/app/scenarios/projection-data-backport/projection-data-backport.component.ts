@@ -7,6 +7,7 @@ import {
   ChangeDetectorRef,
   NgZone,
 } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import type SitnaMap from 'api-sitna';
 import { SitnaConfigService } from '../../services/sitna-config.service';
 import scenarioConfigJson from './sitna-config.json';
@@ -315,6 +316,7 @@ export class ProjectionDataBackportComponent
   private readonly errorHandler = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
+  private readonly snackBar = inject(MatSnackBar);
   private patchManager: PatchManager = createPatchManager();
 
   constructor() {
@@ -451,12 +453,15 @@ export class ProjectionDataBackportComponent
       const result = TC.getProjectionData({ crs: `EPSG:${this.epsgCode}`, sync: true });
       if (typeof result === 'object' && 'code' in result) {
         this.testResult = result as ProjectionData;
+        this.snackBar.open(`✓ Sync test successful for EPSG:${this.testResult.code}`, 'Close', { duration: 3000 });
         this.logger.warn('Sync test successful', result);
       } else {
         this.testError = 'Invalid result returned';
+        this.snackBar.open(`✗ Invalid result for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
       }
     } catch (error: unknown) {
       this.testError = error instanceof Error ? error.message : String(error);
+      this.snackBar.open(`✗ Test failed: ${this.testError}`, 'Close', { duration: 5000 });
       this.logger.error('Sync test failed', error);
     } finally {
       this.isLoading = false;
@@ -481,14 +486,40 @@ export class ProjectionDataBackportComponent
       }
 
       const result = await TC.getProjectionData({ crs: `EPSG:${this.epsgCode}` });
-      if (result && typeof result === 'object' && 'code' in result) {
+
+      // Async mode returns wrapped EPSG API format: { status, number_result, results: [...] }
+      if (result && typeof result === 'object' && 'results' in result && Array.isArray(result.results) && result.results.length > 0) {
+        // Extract the actual ProjectionData from results array
+        const firstResult = result.results[0];
+        // Convert back to full ProjectionData format for display
+        const TC = this.getTC();
+        const cache = TC?.projectionDataCache || projectionDataCache;
+        const code = firstResult.code || this.epsgCode;
+        this.testResult = cache[code] || {
+          code: code,
+          kind: 'CRS-UNKNOWN',
+          name: firstResult.name || 'Unknown',
+          wkt: firstResult.def || '',
+          proj4: firstResult.proj4 || '',
+          bbox: [],
+          unit: firstResult.unit || null,
+          accuracy: null
+        } as ProjectionData;
+        this.snackBar.open(`✓ Async test successful for EPSG:${code}`, 'Close', { duration: 3000 });
+        this.logger.warn('Async test successful', this.testResult);
+      } else if (result && typeof result === 'object' && 'code' in result) {
+        // Direct ProjectionData format (shouldn't happen in async mode, but handle it)
         this.testResult = result as ProjectionData;
-        this.logger.warn('Async test successful', result);
+        this.snackBar.open(`✓ Async test successful for EPSG:${this.epsgCode}`, 'Close', { duration: 3000 });
+        this.logger.warn('Async test successful (direct format)', result);
       } else {
         this.testError = 'No data found or invalid result';
+        this.snackBar.open(`✗ No data found for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
+        this.logger.warn('Async test returned unexpected format', result);
       }
     } catch (error: unknown) {
       this.testError = error instanceof Error ? error.message : String(error);
+      this.snackBar.open(`✗ Test failed: ${this.testError}`, 'Close', { duration: 5000 });
       this.logger.error('Async test failed', error);
     } finally {
       this.isLoading = false;
@@ -499,13 +530,35 @@ export class ProjectionDataBackportComponent
     }
   }
 
-  updateCachedCodes(): void {
+  updateCachedCodes(showNotification: boolean = false): void {
+    const previousCount = this.cachedCodes.length;
     const TC = this.getTC();
     if (TC?.projectionDataCache) {
       this.cachedCodes = Object.keys(TC.projectionDataCache).sort();
     } else {
       this.cachedCodes = Object.keys(projectionDataCache).sort();
     }
+
+    const newCount = this.cachedCodes.length;
+    const added = newCount - previousCount;
+
+    // Show feedback to user via snackbar only when explicitly requested (button click)
+    if (showNotification) {
+      let message: string;
+      if (added > 0) {
+        message = `Cache refreshed: ${added} new projection(s) added. Total: ${newCount}`;
+        this.snackBar.open(message, 'Close', { duration: 4000 });
+      } else if (previousCount === 0 && newCount > 0) {
+        message = `Cache loaded: ${newCount} projection(s) cached`;
+        this.snackBar.open(message, 'Close', { duration: 3000 });
+      } else {
+        message = `Cache refreshed: ${newCount} projection(s) (no changes)`;
+        this.snackBar.open(message, 'Close', { duration: 2500 });
+      }
+
+      this.logger.info(message);
+    }
+
     this.ngZone.run(() => {
       this.cdr.markForCheck();
     });

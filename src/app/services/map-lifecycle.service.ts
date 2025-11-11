@@ -12,6 +12,19 @@ export interface MapLifecycleState {
   error: string | null;
 }
 
+/**
+ * Service for managing SITNA map lifecycle with reactive state.
+ *
+ * Provides:
+ * - Map initialization with loading state tracking
+ * - Signal-based reactive state management
+ * - Automatic error handling and logging
+ * - Async map loading with Promise-based API
+ * - Clean map destruction
+ *
+ * Uses Angular signals for reactive state updates, making it easy to
+ * track map initialization status in components.
+ */
 @Injectable({
   providedIn: 'root',
 })

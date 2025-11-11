@@ -8,6 +8,15 @@ export interface AppError {
   timestamp: Date;
 }
 
+/**
+ * Centralized error handling service.
+ *
+ * Provides consistent error handling throughout the application with:
+ * - Automatic logging via LoggingService
+ * - Context tracking for debugging
+ * - Standardized error format (AppError)
+ * - Helper functions for common error handling patterns
+ */
 @Injectable({
   providedIn: 'root',
 })

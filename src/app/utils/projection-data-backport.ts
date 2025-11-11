@@ -266,10 +266,13 @@ export const projectionDataCache: Record<string, ProjectionData> = {
         }
       }
     }).catch(() => {
-      // Silently fail - proj4 might not be available yet or might be initialized elsewhere
+      // Silent catch is intentional: This IIFE runs during module load (before Angular bootstraps),
+      // so LoggingService is not available. proj4 might not be loaded yet or might be initialized
+      // elsewhere in the application lifecycle. Errors here are non-critical.
     });
   } catch (error) {
-    // Silently fail - proj4 might not be available yet
+    // Silent catch is intentional: This IIFE runs during module load (before Angular bootstraps),
+    // so LoggingService is not available. proj4 might not be loaded yet. Errors here are non-critical.
   }
 })();
 

@@ -92,7 +92,6 @@ const routes: Routes = initializeRoutes();
     MatIconModule,
     MatTooltipModule,
     MatSelectModule,
-    MatChipsModule,
     MatExpansionModule,
     MatButtonToggleModule,
     MatDividerModule,

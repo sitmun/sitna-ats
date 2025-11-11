@@ -106,8 +106,8 @@ export function createPatchManager(): PatchManager {
         try {
           restore();
         } catch (error: unknown) {
-          // Use console directly here as this is a utility function that may be called
-          // before Angular services are available
+          // Direct console usage is intentional: This utility may be called during cleanup
+          // before Angular services are available or after they've been destroyed.
           // eslint-disable-next-line no-console
           console.error('Error restoring patch:', error);
         }

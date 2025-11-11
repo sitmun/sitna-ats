@@ -5,6 +5,18 @@ import type { SitnaConfig, SitnaControls } from '../types/sitna.types';
 import defaultMapOptionsJson from '../../environments/sitna-config-default.json';
 import { LoggingService } from './logging.service';
 
+/**
+ * Service for SITNA map configuration management.
+ *
+ * Responsibilities:
+ * - Initialize SITNA maps with configuration options
+ * - Manage default map options
+ * - Convert between SitnaConfig and MapOptions formats
+ * - Apply global and scenario-specific configurations
+ *
+ * The service supports both global configuration (via SITNA.Cfg) and
+ * scenario-specific configuration that only affects individual map instances.
+ */
 @Injectable({
   providedIn: 'root',
 })
@@ -31,13 +43,26 @@ export class SitnaConfigService {
 
   /**
    * Set custom layout
-   * Layout is set via MapOptions.layout, not a global function
+   *
+   * @deprecated This method is a no-op. Use MapOptions.layout during map initialization instead.
+   * Layout should be configured via the `layout` property in MapOptions when calling `initializeMap()`.
+   * This method is kept for backward compatibility only.
+   *
+   * @param _layout - Layout string (ignored)
+   *
+   * @example
+   * ```typescript
+   * // Instead of:
+   * // configService.setLayout('custom-layout');
+   *
+   * // Do this:
+   * const options: MapOptions = { layout: 'custom-layout' };
+   * configService.initializeMap('map-container', options);
+   * ```
    */
   setLayout(_layout: string): void {
-    // Layout is configured via MapOptions during map initialization
-    // This method is kept for backward compatibility but layout should be in options
     this.logger.warn(
-      'setLayout() should be set via MapOptions.layout during map initialization'
+      'setLayout() is deprecated. Use MapOptions.layout during map initialization instead.'
     );
   }
 
@@ -51,6 +76,24 @@ export class SitnaConfigService {
 
   /**
    * Configure default layers
+   *
+   * @deprecated This method is a no-op. Add layers via map.addLayer() after map initialization.
+   * Layers should be added programmatically after the map is loaded using the map instance's
+   * addLayer() method, or configured in MapOptions during initialization.
+   * This method is kept for backward compatibility only.
+   *
+   * @param _layers - Layer configuration array (ignored)
+   *
+   * @example
+   * ```typescript
+   * // Instead of:
+   * // configService.configureDefaultLayers([...]);
+   *
+   * // Do this:
+   * const map = await configService.initializeMap('map-container');
+   * await map.loaded();
+   * await map.addLayer(layerConfig);
+   * ```
    */
   configureDefaultLayers(_layers: unknown[]): void {
     if (typeof window.SITNA === 'undefined') {
@@ -58,8 +101,9 @@ export class SitnaConfigService {
       return;
     }
 
-    // This would be called during map initialization
-    // Layers are typically added via map.addLayer() after map is loaded
+    this.logger.warn(
+      'configureDefaultLayers() is deprecated. Add layers via map.addLayer() after map initialization.'
+    );
   }
 
   /**
@@ -75,7 +119,7 @@ export class SitnaConfigService {
    */
   applyConfig(config: SitnaConfig): void {
     const SITNA = window.SITNA;
-    
+
     // Apply layout to default options if provided
     if (config.layout !== undefined && config.layout !== null && config.layout !== '') {
       this.defaultMapOptions.layout = config.layout;
@@ -92,7 +136,7 @@ export class SitnaConfigService {
         ...this.defaultMapOptions.controls,
         ...convertedControls,
       };
-      
+
       // Also set SITNA.Cfg.controls if SITNA is available
       if (SITNA?.Cfg?.controls !== undefined && SITNA.Cfg.controls !== null) {
         const controls = SITNA.Cfg.controls as Record<string, unknown>;
@@ -107,7 +151,7 @@ export class SitnaConfigService {
         }
       }
     }
-    
+
     // Apply proxy if provided
     if (config.proxy !== undefined && config.proxy !== null && config.proxy !== '') {
       this.defaultMapOptions.proxy = config.proxy;
@@ -123,23 +167,23 @@ export class SitnaConfigService {
    */
   applyConfigToMapOptions(config: SitnaConfig): MapOptions {
     const mapOptions: MapOptions = {};
-    
+
     // Apply layout if provided
     if (config.layout) {
       mapOptions.layout = config.layout;
     }
-    
+
     // Apply controls if provided
     if (config.controls) {
       const convertedControls = this.convertControlsConfig(config.controls);
       mapOptions.controls = convertedControls;
     }
-    
+
     // Apply proxy if provided
     if (config.proxy) {
       mapOptions.proxy = config.proxy;
     }
-    
+
     // Apply any other top-level config properties that map to MapOptions
     // (crs, baseLayers, initialExtent, etc. can be in config too)
     if (config['crs'] !== undefined) {
@@ -154,7 +198,7 @@ export class SitnaConfigService {
     if (config['initialExtent'] !== undefined) {
       mapOptions.initialExtent = config['initialExtent'] as number[];
     }
-    
+
     return mapOptions;
   }
 
@@ -164,7 +208,7 @@ export class SitnaConfigService {
   private convertControlsConfig(controls: SitnaControls): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     const SITNA = window.SITNA;
-    
+
     // Handle layerCatalog: can be false (disabled) or an object (enabled with config)
     if (controls.layerCatalog === false) {
       result['layerCatalog'] = false;
@@ -172,12 +216,12 @@ export class SitnaConfigService {
       result['layerCatalog'] = {
         div: controls.layerCatalog.div || 'layerCatalog',
       };
-      
+
       // Include enableSearch if explicitly provided
       if (controls.layerCatalog.enableSearch !== undefined) {
         (result['layerCatalog'] as Record<string, unknown>)['enableSearch'] = controls.layerCatalog.enableSearch;
       }
-      
+
       // Include layers array if provided (for WMS services, etc.)
       if (controls.layerCatalog.layers !== undefined && Array.isArray(controls.layerCatalog.layers)) {
         result['layerCatalog'] = {
@@ -192,7 +236,7 @@ export class SitnaConfigService {
               layerNames: layer.layerNames,
               hideTree: layer.hideTree,
             };
-            
+
             // Convert layer type string to SITNA constant if available
             if (layer.type !== undefined) {
               if (typeof layer.type === 'string' && SITNA?.Consts?.layerType !== undefined) {
@@ -213,24 +257,24 @@ export class SitnaConfigService {
                 layerConfig['type'] = layer.type;
               }
             }
-            
+
             return layerConfig;
           }),
         };
       }
     }
-    
+
     // Handle workLayerManager
     if (controls.workLayerManager !== undefined && typeof controls.workLayerManager === 'object') {
       result['workLayerManager'] = {
         div: controls.workLayerManager.div || 'workLayerManager',
       };
     }
-    
+
     if (controls.overviewMap !== undefined) {
       result['overviewMap'] = controls.overviewMap;
     }
-    
+
     return result;
   }
 }

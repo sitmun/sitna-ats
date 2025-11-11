@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import packageLockJson from '../../package-lock.json';
+import packageJson from '../../package.json';
+import { LoggingService } from './services/logging.service';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +13,8 @@ export class AppComponent implements OnInit {
   title = 'SITNA API Testing Sandbox';
   sitnaVersion = '';
 
-  constructor(private titleService: Title) {}
+  private readonly titleService = inject(Title);
+  private readonly logger = inject(LoggingService);
 
   ngOnInit(): void {
     this.loadSitnaVersion();
@@ -23,7 +26,7 @@ export class AppComponent implements OnInit {
       // This is the most accurate source as it reflects the effective runtime version
       // package-lock.json v3 uses 'packages' structure
       const sitnaPackage = packageLockJson.packages?.['node_modules/api-sitna'];
-      
+
       if (sitnaPackage?.version) {
         this.sitnaVersion = sitnaPackage.version;
         this.title = `SITNA API Testing Sandbox (v${this.sitnaVersion} - package-lock.json)`;
@@ -32,15 +35,15 @@ export class AppComponent implements OnInit {
       }
 
       // Fallback: try reading from package.json dependencies
-      const packageJson = require('../../package.json');
       const sitnaVersion = packageJson.dependencies?.['api-sitna'];
       if (sitnaVersion) {
         // Extract version number (remove ^, ~, etc.)
+        this.sitnaVersion = sitnaVersion;
         this.title = `SITNA API Testing Sandbox (v${this.sitnaVersion} - package.json)`;
         this.titleService.setTitle(this.title);
       }
     } catch (error) {
-      console.warn('Could not load SITNA version:', error);
+      this.logger.warn('Could not load SITNA version:', error);
     }
   }
 }

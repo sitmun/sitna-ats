@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+/**
+ * Service for application-wide logging with test environment detection.
+ *
+ * Suppresses console output in test environments (Jest/Karma) to keep test output clean.
+ * In production, proxies to standard console methods.
+ */
 @Injectable({
   providedIn: 'root',
 })
