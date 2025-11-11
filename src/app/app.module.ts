@@ -59,9 +59,6 @@ function initializeRoutes(): Routes {
   return [
     { path: '', component: ScenarioSelectorComponent },
     ...scenarioRoutes,
-    // Catch-all route - but Angular router should not intercept asset requests
-    // Assets are served by the dev server before routing
-    { path: '**', redirectTo: '' },
   ];
 }
 

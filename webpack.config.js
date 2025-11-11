@@ -35,6 +35,11 @@ module.exports = {
           to: 'js/api-sitna/config/predefined-layers.json',
           force: true // Overwrite if file exists
         },
+        {
+          from: path.join(__dirname, 'src/assets/config/scenarios'),
+          to: 'assets/scenarios',
+          force: true // Overwrite if file exists
+        },
         { from: path.join(apiSitnaSource, 'css'), to: 'js/api-sitna/css' },
         { from: path.join(apiSitnaSource, 'layout'), to: 'js/api-sitna/layout' },
         { from: path.join(apiSitnaSource, 'lib'), to: 'js/api-sitna/lib' },

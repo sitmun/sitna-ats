@@ -14,6 +14,10 @@ import {
   ProjectionDataBackportComponent,
   SCENARIO_METADATA as ProjectionDataBackportMetadata,
 } from './projection-data-backport/projection-data-backport.component';
+import {
+  ProjectionDataCurrentComponent,
+  SCENARIO_METADATA as ProjectionDataCurrentMetadata,
+} from './projection-data-current/projection-data-current.component';
 
 /**
  * Register all scenarios with the registry service
@@ -38,6 +42,11 @@ export function registerScenarios(
       componentClass: ProjectionDataBackportComponent,
       selector: 'app-projection-data-backport',
     },
+    {
+      ...ProjectionDataCurrentMetadata,
+      componentClass: ProjectionDataCurrentComponent,
+      selector: 'app-projection-data-current',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -55,6 +64,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     BasicMapInitializationComponent,
     ProxificationLoggingComponent,
     ProjectionDataBackportComponent,
+    ProjectionDataCurrentComponent,
   ];
 }
 

@@ -16,34 +16,45 @@ import { LoggingService } from '../../services/logging.service';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import {
-  patchFunction,
-  patchProperty,
   createPatchManager,
   type PatchManager,
 } from '../../utils/monkey-patch';
-import {
-  type ProjectionData,
-  type GetProjectionDataOptions,
-  type TCNamespace,
-  projectionDataCache,
-  getProjectionData,
-  initializeProj4Definitions,
-} from './src/projection-data-backport';
+
+// The patch file directly modifies TC.getProjectionData when loaded
+// We'll require it in applyPatch() after TC is available and save the original for restoration
+
+export interface ProjectionData {
+  code: string;
+  kind: string;
+  name: string;
+  wkt: string;
+  proj4: string;
+  bbox: number[];
+  unit: string | null;
+  accuracy: number | null;
+}
+
+export interface TCNamespace {
+  apiLocation?: string;
+  getProjectionData?: (options?: { crs?: string; sync?: boolean }) => ProjectionData | Promise<ProjectionData | false | { status: string; number_result: number; results: Array<{ code: string; name: string; def: string; proj4: string; unit: string | null }> }>;
+  projectionDataCache?: Record<string, ProjectionData>;
+  [key: string]: unknown;
+}
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
-  name: 'Projection Data Backport',
-  description: 'Backport of getProjectionData and projectionDataCache from api-sitna version 4.8.0.',
-  tags: ['projection', 'backport', 'crs', 'epsg'],
-  route: 'projection-data-backport',
+  name: 'Projection Data Current',
+  description: 'Patch for current api-sitna 4.1.0 getProjectionData to fix WKT compatibility issues with proj4js.',
+  tags: ['projection', 'patch', 'crs', 'epsg', 'sitmun'],
+  route: 'projection-data-current',
 };
 
 
 @Component({
-  selector: 'app-projection-data-backport',
-  templateUrl: './projection-data-backport.component.html',
-  styleUrls: ['./projection-data-backport.component.scss'],
+  selector: 'app-projection-data-current',
+  templateUrl: './projection-data-current.component.html',
+  styleUrls: ['./projection-data-current.component.scss'],
 })
-export class ProjectionDataBackportComponent
+export class ProjectionDataCurrentComponent
   implements OnInit, OnDestroy
 {
   readonly metadata = SCENARIO_METADATA;
@@ -64,11 +75,11 @@ export class ProjectionDataBackportComponent
 
   constructor() {
     afterNextRender(() => {
-      this.applyBackportWithRetry().then(() => {
+      this.applyPatchWithRetry().then(() => {
         this.initializeMap();
         this.updateCachedCodes();
       }).catch((error) => {
-        this.logger.error('Failed to apply backport, initializing map anyway', error);
+        this.logger.error('Failed to apply patch, initializing map anyway', error);
         this.initializeMap();
         this.updateCachedCodes();
       });
@@ -88,15 +99,11 @@ export class ProjectionDataBackportComponent
     return (window as { TC?: TCNamespace }).TC || (globalThis as { TC?: TCNamespace }).TC;
   }
 
-  private async initializeProj4Definitions(cache: Record<string, ProjectionData>): Promise<void> {
-    await initializeProj4Definitions(cache, this.logger);
-  }
-
-  private async applyBackportWithRetry(maxRetries: number = 50, delayMs: number = 100): Promise<void> {
+  private async applyPatchWithRetry(maxRetries: number = 50, delayMs: number = 100): Promise<void> {
     for (let i = 0; i < maxRetries; i++) {
       const TC = this.getTC();
       if (TC) {
-        await this.applyBackport();
+        await this.applyPatch();
         return;
       }
       if (i < maxRetries - 1) {
@@ -106,39 +113,40 @@ export class ProjectionDataBackportComponent
     throw new Error('TC namespace not available after retries');
   }
 
-  private async applyBackport(): Promise<void> {
+  private async applyPatch(): Promise<void> {
     const TC = this.getTC();
     if (!TC) {
-      this.logger.error('TC namespace not available for backport');
+      this.logger.error('TC namespace not available for patch');
       return;
     }
 
-    // Patch projectionDataCache if it doesn't exist
-    if (!TC.projectionDataCache) {
-      const cachePatch = patchProperty(TC, 'projectionDataCache', projectionDataCache);
-      this.patchManager.add(cachePatch.restore);
-      this.logger.warn('Backported projectionDataCache to TC namespace');
-    } else {
-      // Merge with existing cache
-      Object.assign(TC.projectionDataCache, projectionDataCache);
-      this.logger.warn('Merged backported projectionDataCache with existing cache');
+    try {
+      // Save the original getProjectionData function before applying the patch
+      const originalGetProjectionData = TC.getProjectionData;
+
+      // Initialize TC.projectionDataCache if it doesn't exist
+      // The patch will use this and expose it for analysis
+      if (!TC.projectionDataCache) {
+        TC.projectionDataCache = {};
+      }
+
+      // Require the patch file - it will use TC.projectionDataCache and expose it
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./src/TCProjectionDataPatch.js');
+
+      // Create a restore function to restore the original
+      const restore = (): void => {
+        if (TC && originalGetProjectionData) {
+          TC.getProjectionData = originalGetProjectionData;
+        }
+      };
+
+      this.patchManager.add(restore);
+      this.logger.warn('Applied TCProjectionDataPatch to TC namespace');
+    } catch (error) {
+      this.logger.error('Failed to apply TCProjectionDataPatch', error);
+      throw error;
     }
-
-    // Initialize proj4 definitions for geographic projections (as-is from TC.js)
-    // This must run after projectionDataCache is initialized
-    await this.initializeProj4Definitions(TC.projectionDataCache || projectionDataCache);
-
-    // Always patch getProjectionData to replace the existing implementation
-    const funcPatch = patchFunction(
-      TC,
-      'getProjectionData',
-      ((...args: unknown[]) => {
-        const options = (args[0] as GetProjectionDataOptions | undefined) || {};
-        return getProjectionData(options);
-      }) as (...args: unknown[]) => unknown
-    );
-    this.patchManager.add(funcPatch.restore);
-    this.logger.warn('Backported getProjectionData to TC namespace (replaced existing implementation)');
   }
 
   private initializeMap(): void {
@@ -147,7 +155,7 @@ export class ProjectionDataBackportComponent
       this.configService.applyConfigToMapOptions(scenarioConfig);
 
     this.map = this.configService.initializeMap(
-      'mapa-projection-data-backport',
+      'mapa-projection-data-current',
       scenarioOptions
     );
 
@@ -162,14 +170,14 @@ export class ProjectionDataBackportComponent
             this.cdr.markForCheck();
           });
           this.logger.warn(
-            'Projection Data Backport: Map loaded successfully',
+            'Projection Data Current: Map loaded successfully',
             this.map
           );
         })
         .catch((error: unknown) => {
           this.errorHandler.handleError(
             error,
-            'ProjectionDataBackportComponent.initializeMap'
+            'ProjectionDataCurrentComponent.initializeMap'
           );
         });
     }
@@ -194,13 +202,47 @@ export class ProjectionDataBackportComponent
       }
 
       const result = TC.getProjectionData({ crs: `EPSG:${this.epsgCode}`, sync: true });
-      if (typeof result === 'object' && 'code' in result) {
+
+      // In sync mode, result should not be a Promise
+      if (result instanceof Promise) {
+        this.testError = 'Unexpected Promise returned in sync mode';
+        this.snackBar.open(`✗ Sync mode returned Promise for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
+        this.logger.error('Sync test returned Promise', result);
+        return;
+      }
+
+      // The patch returns EPSG API format: { status, number_result, results: [...] } or null
+      if (result && typeof result === 'object' && 'results' in result && Array.isArray(result.results) && result.results.length > 0) {
+        // Extract the actual projection data from results array
+        const firstResult = result.results[0];
+        const code = firstResult.code || this.epsgCode;
+        this.testResult = {
+          code: code,
+          kind: 'CRS-UNKNOWN',
+          name: firstResult.name || 'Unknown',
+          wkt: firstResult.def || '', // Patch doesn't provide WKT, but we'll use proj4 as def
+          proj4: firstResult.proj4 || '',
+          bbox: [],
+          unit: null,
+          accuracy: null
+        } as ProjectionData;
+        this.snackBar.open(`✓ Sync test successful for EPSG:${code}`, 'Close', { duration: 3000 });
+        this.logger.warn('Sync test successful', this.testResult);
+        this.updateCachedCodes();
+      } else if (result && typeof result === 'object' && 'code' in result) {
+        // Direct ProjectionData format (fallback for compatibility)
         this.testResult = result as ProjectionData;
         this.snackBar.open(`✓ Sync test successful for EPSG:${this.testResult.code}`, 'Close', { duration: 3000 });
-        this.logger.warn('Sync test successful', result);
+        this.logger.warn('Sync test successful (direct format)', result);
+        this.updateCachedCodes();
+      } else if (result === null || result === false) {
+        this.testError = 'No data found for this EPSG code';
+        this.snackBar.open(`✗ No data found for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
+        this.logger.warn('Sync test returned null/false', result);
       } else {
-        this.testError = 'Invalid result returned';
-        this.snackBar.open(`✗ Invalid result for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
+        this.testError = 'Invalid result format returned';
+        this.snackBar.open(`✗ Invalid result format for EPSG:${this.epsgCode}`, 'Close', { duration: 4000 });
+        this.logger.warn('Sync test returned unexpected format', result);
       }
     } catch (error: unknown) {
       this.testError = error instanceof Error ? error.message : String(error);
@@ -234,11 +276,9 @@ export class ProjectionDataBackportComponent
       if (result && typeof result === 'object' && 'results' in result && Array.isArray(result.results) && result.results.length > 0) {
         // Extract the actual ProjectionData from results array
         const firstResult = result.results[0];
-        // Convert back to full ProjectionData format for display
-        const TC = this.getTC();
-        const cache = TC?.projectionDataCache || projectionDataCache;
+        // Convert to ProjectionData format for display
         const code = firstResult.code || this.epsgCode;
-        this.testResult = cache[code] || {
+        this.testResult = {
           code: code,
           kind: 'CRS-UNKNOWN',
           name: firstResult.name || 'Unknown',
@@ -276,10 +316,11 @@ export class ProjectionDataBackportComponent
   updateCachedCodes(showNotification: boolean = false): void {
     const previousCount = this.cachedCodes.length;
     const TC = this.getTC();
+    // The cache is now accessible via TC.projectionDataCache (exposed through globalThis)
     if (TC?.projectionDataCache) {
       this.cachedCodes = Object.keys(TC.projectionDataCache).sort();
     } else {
-      this.cachedCodes = Object.keys(projectionDataCache).sort();
+      this.cachedCodes = [];
     }
 
     const newCount = this.cachedCodes.length;
@@ -361,3 +402,4 @@ export class ProjectionDataBackportComponent
     }
   }
 }
+
