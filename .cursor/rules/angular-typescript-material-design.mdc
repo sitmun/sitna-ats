@@ -1,0 +1,299 @@
+---
+description: Strict Material Design and Angular/TypeScript best practices (excludes patch code)
+globs:
+  - "**/*.ts"
+  - "**/*.html"
+  - "**/*.scss"
+  - "**/*.css"
+  - "!**/scenarios/**/src/**"
+alwaysApply: true
+---
+
+# Angular, TypeScript, and Material Design Best Practices
+
+## Scope
+
+This rule applies to **all Angular application code** but **excludes patch code** that may be used in other projects:
+
+- **Excluded**: `src/app/scenarios/**/src/**` (patch files)
+
+## Material Design Requirements
+
+### Component Usage
+
+1. **Always use Angular Material components** instead of custom HTML elements when available:
+   - Use `<mat-button>` instead of `<button>`
+   - Use `<mat-card>` instead of `<div class="card">`
+   - Use `<mat-form-field>` with `<mat-input>` instead of plain `<input>`
+   - Use `<mat-toolbar>` for headers
+   - Use `<mat-list>` and `<mat-list-item>` for lists
+   - Use `<mat-icon>` for icons (Material Icons)
+
+2. **Common Material Components by Category**:
+   - **Data Tables**: Use `<mat-table>` with `<mat-paginator>` and `<mat-sort>` for tabular data
+   - **Form Controls**: `<mat-select>`, `<mat-checkbox>`, `<mat-radio-group>`, `<mat-datepicker>`, `<mat-slider>`, `<mat-autocomplete>`
+   - **Navigation**: `<mat-tab-group>`, `<mat-sidenav>`, `<mat-menu>`, `<mat-stepper>` for multi-step workflows
+   - **UI Elements**: `<mat-tooltip>`, `<mat-chip>`, `<mat-badge>`, `<mat-expansion-panel>`, `<mat-divider>`
+   - **Layout**: `<mat-grid-list>`, `<mat-card>`, `<mat-toolbar>`
+
+3. **Material Design Typography**:
+   - Use Material typography classes: `mat-headline-1`, `mat-headline-2`, `mat-body-1`, `mat-body-2`, etc.
+   - Avoid custom font-size declarations; use Material typography scale
+   - Use `mat-typography` class on root elements
+
+4. **Material Design Spacing**:
+   - Use Material spacing utilities: `mat-mdc-*` spacing classes
+   - Follow 8dp grid system for spacing
+   - Use Material elevation classes: `mat-elevation-z0` through `mat-elevation-z24`
+
+5. **Color System**:
+   - Use Material theme colors via SCSS variables: `$primary`, `$accent`, `$warn`
+   - Use `@use '@angular/material' as mat;` in SCSS files
+   - Access theme colors: `mat.get-color-from-palette($primary-palette, 500)`
+   - Never hardcode hex colors; always use theme palette
+
+6. **Material Theming**:
+   - Define custom themes in `src/styles/_theme.scss`
+   - Use Material Design 3 (M3) theming when available
+   - Ensure proper contrast ratios (WCAG AA minimum)
+
+### Component Patterns
+
+1. **Form Controls**:
+   - Always wrap inputs in `<mat-form-field>`
+   - Use `<mat-label>` for labels
+   - Use `<mat-hint>` for helper text
+   - Use `<mat-error>` for validation messages
+   - Use `matInput` directive on input elements
+
+2. **Buttons**:
+   - Use `mat-raised-button`, `mat-flat-button`, `mat-stroked-button`, or `mat-icon-button`
+   - Use `color` attribute: `primary`, `accent`, `warn`
+   - Use `mat-fab` or `mat-mini-fab` for floating action buttons
+
+3. **Feedback**:
+   - Use `MatSnackBar` for notifications (not `alert()` or `console.log()`)
+   - Use `MatDialog` for modal dialogs
+   - Use `MatProgressSpinner` or `MatProgressBar` for loading states
+
+## Angular Best Practices
+
+### Component Architecture
+
+1. **Component Structure**:
+   - Use standalone components when possible (Angular 17+)
+   - Implement `OnInit` and `OnDestroy` lifecycle hooks explicitly
+   - Use `readonly` for component properties that don't change
+   - Use `private` for internal methods and properties
+
+2. **Change Detection**:
+   - Prefer `OnPush` change detection strategy when possible
+   - Use `ChangeDetectorRef.detectChanges()` only when necessary
+   - Avoid manual change detection in patches (patches run outside Angular zone)
+
+3. **Dependency Injection**:
+   - Inject dependencies via constructor
+   - Use `providedIn: 'root'` for singleton services
+   - Use `providedIn: 'any'` for services that should have separate instances per lazy-loaded module
+
+4. **Lifecycle Hooks**:
+   - Use `afterNextRender()` or `afterRender()` for DOM-dependent initialization
+   - Always implement `ngOnDestroy()` to clean up subscriptions, timers, and patches
+   - Use `ngOnInit()` for component initialization logic
+
+5. **Signals** (Angular 17+):
+   - Prefer signals over RxJS observables for simple state
+   - Use `computed()` for derived state
+   - Use `effect()` for side effects based on signal changes
+
+### Services
+
+1. **Service Design**:
+   - Services should be focused and single-purpose
+   - Use `providedIn: 'root'` for application-wide services
+   - Make services injectable with `@Injectable()` decorator
+
+2. **Error Handling**:
+   - Use centralized error handling service
+   - Never use `console.error()` directly; use logging service
+   - Handle errors with proper user feedback (MatSnackBar)
+
+3. **Observables**:
+   - Always unsubscribe from observables in `ngOnDestroy()`
+   - Use `takeUntilDestroyed()` operator when available
+   - Use `async` pipe in templates when possible
+
+### Forms
+
+1. **Form Approaches**:
+   - Use **Reactive Forms** for complex forms with dynamic validation, cross-field validation, or dynamic controls
+   - Use **Template-driven Forms** only for simple forms with basic validation
+   - Prefer Reactive Forms as the default approach for better testability and type safety
+
+2. **Reactive Forms Structure**:
+   - Build forms with `FormGroup`, `FormControl`, and `FormArray`
+   - Define form structure in component class, not template
+   - Use `FormBuilder` service for cleaner form initialization
+   - Type form controls with proper interfaces when possible
+
+3. **Validation**:
+   - Use built-in validators: `Validators.required`, `Validators.email`, `Validators.minLength`, etc.
+   - Create custom validators as functions returning `ValidationErrors | null`
+   - Use async validators for server-side validation (return `Observable<ValidationErrors | null>`)
+   - Access validation state: `form.valid`, `form.invalid`, `form.errors`
+
+4. **Form State Management**:
+   - Check form state: `pristine`, `dirty`, `touched`, `untouched`
+   - Use `markAsTouched()`, `markAsDirty()`, `markAsPristine()` to control state
+   - Reset forms with `reset()` method
+   - Use `valueChanges` observable to react to form changes
+
+5. **Dynamic Forms**:
+   - Use `FormArray` for dynamic lists of controls
+   - Add controls: `formArray.push(new FormControl())`
+   - Remove controls: `formArray.removeAt(index)`
+   - Clear all: `formArray.clear()`
+
+### RxJS Patterns
+
+1. **Common Operators**:
+   - **Transformation**: `map`, `switchMap`, `mergeMap`, `concatMap`, `exhaustMap`
+   - **Filtering**: `filter`, `distinctUntilChanged`, `debounceTime`, `throttleTime`
+   - **Utility**: `tap` (side effects), `delay`, `timeout`
+   - **Error Handling**: `catchError`, `retry`, `retryWhen`
+
+2. **Operator Selection**:
+   - Use `switchMap` for HTTP requests that should cancel previous requests (e.g., search autocomplete)
+   - Use `mergeMap` when all requests should complete regardless of order
+   - Use `concatMap` when order matters and requests should queue
+   - Use `exhaustMap` to ignore new requests while one is pending
+
+3. **Subject Types**:
+   - **Subject**: Basic multicast, no initial value, no replay
+   - **BehaviorSubject**: Requires initial value, emits last value to new subscribers
+   - **ReplaySubject**: Replays specified number of past values to new subscribers
+   - **AsyncSubject**: Emits only the last value when completed
+   - Prefer `BehaviorSubject` for state management
+
+4. **Observable Patterns**:
+   - Cold observables: Create new execution for each subscriber (HTTP requests)
+   - Hot observables: Share execution among subscribers (WebSocket, Subject)
+   - Use `shareReplay(1)` to cache and share HTTP response among multiple subscribers
+   - Use `share()` for multicasting without replay
+
+5. **Combination Operators**:
+   - `combineLatest`: Emit when any observable emits (requires all to emit at least once)
+   - `forkJoin`: Emit when all observables complete (like `Promise.all`)
+   - `zip`: Emit when all observables emit at same index
+   - `withLatestFrom`: Combine with latest value from other observable
+
+6. **Best Practices**:
+   - Avoid nested subscriptions; use operators like `switchMap`, `mergeMap` instead
+   - Always handle errors with `catchError` operator
+   - Use `takeUntilDestroyed()` or `takeUntil()` to prevent memory leaks
+   - Prefer declarative approach with operators over imperative subscriptions
+
+### Templates
+
+1. **Template Syntax**:
+   - Use `*ngIf` instead of `[hidden]` for conditional rendering
+   - Use `*ngFor` with `trackBy` function for lists
+   - Use `[ngClass]` and `[ngStyle]` sparingly; prefer component properties
+   - Use `@if`, `@for`, `@switch` (Angular 17+ control flow) when available
+
+2. **Data Binding**:
+   - Prefer one-way data binding (`[property]="value"`) over two-way binding
+   - Use `(event)="handler()"` for event binding
+   - Use `[(ngModel)]` only when necessary (forms)
+
+3. **Accessibility**:
+   - Always include `aria-label` for icon buttons
+   - Use semantic HTML elements
+   - Ensure keyboard navigation works
+   - Use Material Design accessibility features
+
+## TypeScript Best Practices
+
+### Type Safety
+
+1. **Type Definitions**:
+   - Always define explicit types for function parameters and return types
+   - Use interfaces for object shapes
+   - Use type aliases for complex types
+   - Avoid `any`; use `unknown` when type is truly unknown
+
+2. **Strict Mode**:
+   - Enable strict TypeScript compiler options
+   - Use `strictNullChecks` and handle null/undefined explicitly
+   - Use optional chaining (`?.`) and nullish coalescing (`??`)
+
+3. **Type Guards**:
+   - Use type guards for runtime type checking
+   - Use `instanceof` for class type checks
+   - Use discriminated unions for type narrowing
+
+### Code Quality
+
+1. **Imports**:
+   - Use absolute imports with path aliases when configured
+   - Group imports: Angular, Material, third-party, local
+   - Remove unused imports
+
+2. **Functions**:
+   - Prefer arrow functions for callbacks
+   - Use regular functions for methods that need `this` context
+   - Keep functions small and focused (single responsibility)
+
+3. **Variables**:
+   - Use `const` by default, `let` when reassignment is needed
+   - Never use `var`
+   - Use descriptive variable names
+
+4. **Classes**:
+   - Use `readonly` for properties that shouldn't change
+   - Use access modifiers (`public`, `private`, `protected`)
+   - Implement interfaces explicitly
+
+### Modern TypeScript Features
+
+1. **Use Modern Syntax**:
+   - Use optional chaining: `obj?.prop?.method()`
+   - Use nullish coalescing: `value ?? defaultValue`
+   - Use template literals for string interpolation
+   - Use destructuring for object/array access
+
+2. **Async/Await**:
+   - Prefer `async/await` over Promise chains
+   - Always handle errors with `try/catch`
+   - Use `Promise.all()` for parallel async operations
+
+## Code Review Checklist
+
+When reviewing code, ensure:
+
+- [ ] Material Design components are used instead of custom HTML
+- [ ] Material theme colors are used (no hardcoded colors)
+- [ ] Material typography and spacing are followed
+- [ ] Components implement proper lifecycle hooks
+- [ ] Services use dependency injection correctly
+- [ ] Observables are properly unsubscribed
+- [ ] TypeScript types are explicit and strict
+- [ ] No `any` types (except in patches)
+- [ ] Error handling is implemented
+- [ ] Accessibility attributes are present
+- [ ] Code follows Angular style guide
+- [ ] Modern TypeScript features are used appropriately
+- [ ] Reactive forms use proper FormGroup/FormControl structure
+- [ ] Form validation is implemented correctly (built-in and custom validators)
+- [ ] RxJS operators are used efficiently (no nested subscriptions)
+- [ ] Appropriate operator selected (switchMap vs mergeMap vs concatMap)
+- [ ] Subjects are used appropriately (prefer BehaviorSubject for state)
+- [ ] Error handling in observables with catchError operator
+
+## Exceptions
+
+**Patch code is exempt** from these rules as it may be used in other projects with different requirements:
+
+- Files in `src/app/scenarios/**/src/**`
+
+These files may use different patterns, styles, and practices as needed for compatibility with external projects.

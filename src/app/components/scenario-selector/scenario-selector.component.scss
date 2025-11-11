@@ -43,6 +43,7 @@ mat-chip-set.chip-container {
 
 .tag-chip-filter {
   border: 1px solid;
+  background-color: transparent !important;
 }
 
 mat-chip.tag-chip-filter:focus,
@@ -53,7 +54,39 @@ mat-chip.tag-chip-filter:focus-visible {
 
 mat-chip.tag-chip-filter.selected {
   font-weight: 600;
+  color: white !important;
 }
+
+// Tag color classes - Material Design palette colors
+.tag-color-0 { border-color: mat.get-color-from-palette(mat.$blue-palette, 500) !important; }
+.tag-color-0.selected { background-color: mat.get-color-from-palette(mat.$blue-palette, 500) !important; }
+
+.tag-color-1 { border-color: mat.get-color-from-palette(mat.$green-palette, 500) !important; }
+.tag-color-1.selected { background-color: mat.get-color-from-palette(mat.$green-palette, 500) !important; }
+
+.tag-color-2 { border-color: mat.get-color-from-palette(mat.$orange-palette, 500) !important; }
+.tag-color-2.selected { background-color: mat.get-color-from-palette(mat.$orange-palette, 500) !important; }
+
+.tag-color-3 { border-color: mat.get-color-from-palette(mat.$red-palette, 500) !important; }
+.tag-color-3.selected { background-color: mat.get-color-from-palette(mat.$red-palette, 500) !important; }
+
+.tag-color-4 { border-color: mat.get-color-from-palette(mat.$purple-palette, 500) !important; }
+.tag-color-4.selected { background-color: mat.get-color-from-palette(mat.$purple-palette, 500) !important; }
+
+.tag-color-5 { border-color: mat.get-color-from-palette(mat.$deep-orange-palette, 500) !important; }
+.tag-color-5.selected { background-color: mat.get-color-from-palette(mat.$deep-orange-palette, 500) !important; }
+
+.tag-color-6 { border-color: mat.get-color-from-palette(mat.$cyan-palette, 500) !important; }
+.tag-color-6.selected { background-color: mat.get-color-from-palette(mat.$cyan-palette, 500) !important; }
+
+.tag-color-7 { border-color: mat.get-color-from-palette(mat.$pink-palette, 500) !important; }
+.tag-color-7.selected { background-color: mat.get-color-from-palette(mat.$pink-palette, 500) !important; }
+
+.tag-color-8 { border-color: mat.get-color-from-palette(mat.$teal-palette, 500) !important; }
+.tag-color-8.selected { background-color: mat.get-color-from-palette(mat.$teal-palette, 500) !important; }
+
+.tag-color-9 { border-color: mat.get-color-from-palette(mat.$blue-grey-palette, 500) !important; }
+.tag-color-9.selected { background-color: mat.get-color-from-palette(mat.$blue-grey-palette, 500) !important; }
 
 .tag-count-badge {
   display: inline-flex;
@@ -71,6 +104,18 @@ mat-chip.tag-chip-filter.selected {
   flex-shrink: 0;
   transform: translateX(6px);
 }
+
+// Tag count badge color classes
+.tag-color-0 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$blue-palette, 500) !important; }
+.tag-color-1 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$green-palette, 500) !important; }
+.tag-color-2 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$orange-palette, 500) !important; }
+.tag-color-3 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$red-palette, 500) !important; }
+.tag-color-4 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$purple-palette, 500) !important; }
+.tag-color-5 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$deep-orange-palette, 500) !important; }
+.tag-color-6 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$cyan-palette, 500) !important; }
+.tag-color-7 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$pink-palette, 500) !important; }
+.tag-color-8 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$teal-palette, 500) !important; }
+.tag-color-9 .tag-count-badge { background-color: mat.get-color-from-palette(mat.$blue-grey-palette, 500) !important; }
 
 .filter-actions {
   display: flex;
@@ -135,8 +180,20 @@ mat-chip.tag-chip-filter.selected {
   @include mat.typography-level(theme.$typography-config, 'caption');
   font-weight: 500;
   height: 24px;
-  color: white;
+  color: white !important;
 }
+
+// Scenario tag chip colors
+.scenario-tag-chip.tag-color-0 { background-color: mat.get-color-from-palette(mat.$blue-palette, 500) !important; }
+.scenario-tag-chip.tag-color-1 { background-color: mat.get-color-from-palette(mat.$green-palette, 500) !important; }
+.scenario-tag-chip.tag-color-2 { background-color: mat.get-color-from-palette(mat.$orange-palette, 500) !important; }
+.scenario-tag-chip.tag-color-3 { background-color: mat.get-color-from-palette(mat.$red-palette, 500) !important; }
+.scenario-tag-chip.tag-color-4 { background-color: mat.get-color-from-palette(mat.$purple-palette, 500) !important; }
+.scenario-tag-chip.tag-color-5 { background-color: mat.get-color-from-palette(mat.$deep-orange-palette, 500) !important; }
+.scenario-tag-chip.tag-color-6 { background-color: mat.get-color-from-palette(mat.$cyan-palette, 500) !important; }
+.scenario-tag-chip.tag-color-7 { background-color: mat.get-color-from-palette(mat.$pink-palette, 500) !important; }
+.scenario-tag-chip.tag-color-8 { background-color: mat.get-color-from-palette(mat.$teal-palette, 500) !important; }
+.scenario-tag-chip.tag-color-9 { background-color: mat.get-color-from-palette(mat.$blue-grey-palette, 500) !important; }
 
 .scenario-tag-chip:focus,
 .scenario-tag-chip:focus-visible {

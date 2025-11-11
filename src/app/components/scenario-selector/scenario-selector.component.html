@@ -1,6 +1,6 @@
 <div class="scenario-selector">
-  <h2>Select a Scenario</h2>
-  
+  <h2 class="mat-headline-6">Select a Scenario</h2>
+
   <!-- Filters -->
   <div class="filters">
     <div class="filter-group">
@@ -18,7 +18,7 @@
         />
       </mat-form-field>
     </div>
-    
+
     <div class="filter-group">
       <label id="tags-filter-label">Filter by tags:</label>
       <mat-chip-set
@@ -32,11 +32,9 @@
           (keydown)="onKeyDown($event, 'toggle', tag)"
           [class.selected]="isTagSelected(tag)"
           [class.tag-chip-filter]="true"
+          [class]="getTagColorClass(tag)"
           [attr.aria-pressed]="isTagSelected(tag)"
           [attr.aria-label]="getTagAriaLabel(tag)"
-          [style.background-color]="isTagSelected(tag) ? getTagColor(tag) : 'transparent'"
-          [style.color]="isTagSelected(tag) ? 'white' : 'inherit'"
-          [style.border-color]="getTagColor(tag)"
           role="button"
           tabindex="0"
         >
@@ -44,7 +42,6 @@
           <span
             *ngIf="getTagCount(tag) > 0"
             class="tag-count-badge"
-            [style.background-color]="getTagColor(tag)"
             [attr.aria-label]="getTagCount(tag) + ' scenarios'"
           >
             {{ getTagCount(tag) }}
@@ -52,7 +49,7 @@
         </mat-chip>
       </mat-chip-set>
     </div>
-    
+
     <div class="filter-actions" *ngIf="selectedTags.length > 0 || nameFilter">
       <button
         type="button"
@@ -93,7 +90,7 @@
               *ngFor="let tag of scenario.tags; trackBy: trackByTagName"
               class="scenario-tag-chip"
               [class.tag-selected]="isTagSelected(tag)"
-              [style.background-color]="getTagColor(tag)"
+              [class]="getTagColorClass(tag)"
               (click)="onCardTagClick($event, tag)"
               (keydown)="onCardTagKeyDown($event, tag)"
               [attr.aria-label]="'Filter by ' + tag + ' tag'"
@@ -108,7 +105,7 @@
       </mat-card>
     </div>
   </div>
-  
+
   <!-- No results -->
   <div *ngIf="filteredScenarios.length === 0 && (selectedTags.length > 0 || nameFilter)" class="no-results" aria-live="polite">
     <p>No scenarios match your filters.</p>

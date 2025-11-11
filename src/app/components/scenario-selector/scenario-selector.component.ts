@@ -25,14 +25,14 @@ export class ScenarioSelectorComponent implements OnInit {
   ngOnInit(): void {
     // Register all scenarios
     registerScenarios(this.registry);
-    
+
     // Load scenarios
     this.allScenarios = this.registry.getAllScenarios();
     this.availableTags = this.registry.getAllTags();
-    
+
     // Calculate tag counts
     this.calculateTagCounts();
-    
+
     this.applyFilters();
   }
 
@@ -50,29 +50,17 @@ export class ScenarioSelectorComponent implements OnInit {
     return this.tagCounts.get(tag) || 0;
   }
 
-  getTagColor(tag: string): string {
-    // Generate consistent colors based on tag name using Material Design palette colors
-    // Using Material Design 500 shades for vibrant, accessible colors
-    const colors = [
-      '#2196f3', // Material Blue 500
-      '#4caf50', // Material Green 500
-      '#ff9800', // Material Orange 500
-      '#f44336', // Material Red 500
-      '#9c27b0', // Material Purple 500
-      '#ff5722', // Material Deep Orange 500
-      '#00bcd4', // Material Cyan 500
-      '#e91e63', // Material Pink 500
-      '#009688', // Material Teal 500
-      '#607d8b', // Material Blue Grey 500
-    ];
-    
+  getTagColorClass(tag: string): string {
+    // Generate consistent color class based on tag name using Material Design palette colors
+    // Returns a class name like 'tag-color-0', 'tag-color-1', etc.
+
     // Simple hash function to get consistent color for each tag
     let hash = 0;
     for (let i = 0; i < tag.length; i++) {
       hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
+    const index = Math.abs(hash) % 10; // 10 color variants
+    return `tag-color-${index}`;
   }
 
   onNameFilterInput(event: Event): void {
@@ -104,11 +92,11 @@ export class ScenarioSelectorComponent implements OnInit {
 
   private applyFilters(): void {
     const filters: { tags?: string[]; name?: string } = {};
-    
+
     if (this.selectedTags.length > 0) {
       filters.tags = this.selectedTags;
     }
-    
+
     if (this.nameFilter.trim()) {
       filters.name = this.nameFilter.trim();
     }
