@@ -1,0 +1,10 @@
+{
+    "baseLayers": ["ign-base", "ign-mtn", "ign-pnoa"],
+    "defaultBaseLayer": "ign-base",
+    "controls": {
+    "basemapSelector": {
+      "div": "tc-slot-bms"
+    }
+  }
+}
+

@@ -76,7 +76,7 @@ export function patchSitnaMapLogging(
       const advice = meld.before(
         SITNA.Map.prototype,
         methodName,
-        function (this: unknown, ...args: unknown[]): void {
+        (this: unknown, ...args: unknown[]): void => {
           // Use console directly here as this is a utility function that may be called
           // before Angular services are available. The logging service should be used
           // in components and services instead.

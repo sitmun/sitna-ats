@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { MapLifecycleService, type MapLifecycleState } from '../../src/app/services/map-lifecycle.service';
+import { MapLifecycleService } from '../../src/app/services/map-lifecycle.service';
 import { SitnaConfigService } from '../../src/app/services/sitna-config.service';
 import { LoggingService } from '../../src/app/services/logging.service';
 import { ErrorHandlingService } from '../../src/app/services/error-handling.service';

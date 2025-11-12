@@ -289,9 +289,9 @@ export class ProxificationLoggingComponent
     // Show last part of path
     const parts = filePath.split('/');
     if (parts.length > 1) {
-      return '.../' + parts.slice(-2).join('/');
+      return `.../${  parts.slice(-2).join('/')}`;
     }
-    return '...' + filePath.slice(-maxLength + 3);
+    return `...${  filePath.slice(-maxLength + 3)}`;
   }
 
   /**
@@ -504,7 +504,7 @@ export class ProxificationLoggingComponent
       );
 
       try {
-        const result = original.apply(this, args) as unknown;
+        const result = original.apply(this, args);
 
         // Handle promises
         if (result && typeof result === 'object' && 'then' in result && typeof (result as { then: unknown }).then === 'function') {
@@ -865,7 +865,7 @@ export class ProxificationLoggingComponent
       return;
     }
 
-    const LayerProto = layer.Layer.prototype as Record<string, unknown>;
+    const LayerProto = layer.Layer.prototype;
     const self = this;
 
     // Patch getCapabilitiesOnline to intercept proxificationTool.fetch calls
@@ -1188,7 +1188,7 @@ export class ProxificationLoggingComponent
     this.ngZone.run(() => {
       const logEntry: ProxificationLogEntry = {
         ...entry,
-        id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       };
       this.logs.push(logEntry);
       this.statistics.totalCalls++;
@@ -1464,34 +1464,35 @@ export class ProxificationLoggingComponent
       requestContext: this.getRequestContext(log),
     };
     const text = JSON.stringify(logData, null, 2);
-    navigator.clipboard.writeText(text).then(() => {
-      this.snackBar.open('Log entry copied to clipboard', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
-    }).catch(() => {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      const success = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (success) {
+
+    // Modern Clipboard API (supported in all modern browsers)
+    // https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
         this.snackBar.open('Log entry copied to clipboard', 'Close', {
           duration: 3000,
           horizontalPosition: 'end',
           verticalPosition: 'top',
         });
-      } else {
+      }).catch((error: unknown) => {
+        this.logger.error('Failed to copy to clipboard', error);
         this.snackBar.open('Failed to copy to clipboard', 'Close', {
           duration: 3000,
           horizontalPosition: 'end',
           verticalPosition: 'top',
         });
-      }
-    });
+      });
+    } else {
+      // Fallback for browsers without Clipboard API support
+      // This should rarely be needed as Clipboard API is supported in:
+      // Chrome 66+, Firefox 63+, Safari 13.1+, Edge 79+
+      this.logger.warn('Clipboard API not available, clipboard copy may not work');
+      this.snackBar.open('Clipboard API not supported in this browser', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'end',
+        verticalPosition: 'top',
+      });
+    }
   }
 
   // ============================================================================
@@ -1515,15 +1516,15 @@ export class ProxificationLoggingComponent
    * @returns Formatted string representation
    */
   formatValue(value: unknown): string {
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
+    if (value === null) {return 'null';}
+    if (value === undefined) {return 'undefined';}
     if (typeof value === 'string') {
-      return value.length > 100 ? value.substring(0, 100) + '...' : value;
+      return value.length > 100 ? `${value.substring(0, 100)  }...` : value;
     }
     if (typeof value === 'object') {
       try {
         const str = JSON.stringify(value);
-        return str.length > 200 ? str.substring(0, 200) + '...' : str;
+        return str.length > 200 ? `${str.substring(0, 200)  }...` : str;
       } catch {
         return String(value);
       }

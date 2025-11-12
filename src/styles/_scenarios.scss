@@ -1,0 +1,19 @@
+@use '@angular/material' as mat;
+
+/**
+ * Shared styles for scenario components
+ * These styles are used across all scenario components for consistency
+ */
+
+.scenario-container {
+  padding: 16px;
+}
+
+.map-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid mat.get-color-from-palette(mat.$grey-palette, 300);
+  border-radius: 4px;
+  margin-top: 16px;
+}
+

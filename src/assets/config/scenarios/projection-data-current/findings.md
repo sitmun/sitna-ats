@@ -36,7 +36,7 @@ The original api-sitna 4.1.0 `getProjectionData` implementation (lines 390-438 i
 | **Response Structure** | Full epsg.io API response with all fields | Limited: `authority`, `code`, `name`, `proj4` |
 
 **Original 4.1.0 Response Structure (from epsg.io API):**
-```javascript
+```jsonc
 // Raw epsg.io API response - returned as-is
 {
   "status": "ok",

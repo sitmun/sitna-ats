@@ -197,7 +197,7 @@ export class ProjectionDataCurrentComponent
 
     try {
       const TC = this.getTC();
-      if (!TC || !TC.getProjectionData) {
+      if (!TC?.getProjectionData) {
         throw new Error('TC.getProjectionData not available');
       }
 
@@ -231,7 +231,7 @@ export class ProjectionDataCurrentComponent
         this.updateCachedCodes();
       } else if (result && typeof result === 'object' && 'code' in result) {
         // Direct ProjectionData format (fallback for compatibility)
-        this.testResult = result as ProjectionData;
+        this.testResult = result;
         this.snackBar.open(`✓ Sync test successful for EPSG:${this.testResult.code}`, 'Close', { duration: 3000 });
         this.logger.warn('Sync test successful (direct format)', result);
         this.updateCachedCodes();
@@ -266,7 +266,7 @@ export class ProjectionDataCurrentComponent
 
     try {
       const TC = this.getTC();
-      if (!TC || !TC.getProjectionData) {
+      if (!TC?.getProjectionData) {
         throw new Error('TC.getProjectionData not available');
       }
 
@@ -292,7 +292,7 @@ export class ProjectionDataCurrentComponent
         this.logger.warn('Async test successful', this.testResult);
       } else if (result && typeof result === 'object' && 'code' in result) {
         // Direct ProjectionData format (shouldn't happen in async mode, but handle it)
-        this.testResult = result as ProjectionData;
+        this.testResult = result;
         this.snackBar.open(`✓ Async test successful for EPSG:${this.epsgCode}`, 'Close', { duration: 3000 });
         this.logger.warn('Async test successful (direct format)', result);
       } else {
@@ -360,7 +360,7 @@ export class ProjectionDataCurrentComponent
 
     const TC = this.getTC();
     const tcControl = TC?.['control'] as { Coordinates?: unknown } | undefined;
-    if (!TC || !tcControl || !tcControl['Coordinates']) {
+    if (!TC || !tcControl?.['Coordinates']) {
       return;
     }
 

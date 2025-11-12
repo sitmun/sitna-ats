@@ -1,4 +1,4 @@
-import { ScenarioRegistryService } from '../services/scenario-registry.service';
+import type { ScenarioRegistryService } from '../services/scenario-registry.service';
 import type { ScenarioRegistration } from '../types/scenario.types';
 
 // Import scenario component and its metadata
@@ -18,6 +18,10 @@ import {
   ProjectionDataCurrentComponent,
   SCENARIO_METADATA as ProjectionDataCurrentMetadata,
 } from './projection-data-current/projection-data-current.component';
+import {
+  BasemapSelectorControlComponent,
+  SCENARIO_METADATA as BasemapSelectorControlMetadata,
+} from './basemap-selector-control/basemap-selector-control.component';
 
 /**
  * Register all scenarios with the registry service
@@ -47,6 +51,11 @@ export function registerScenarios(
       componentClass: ProjectionDataCurrentComponent,
       selector: 'app-projection-data-current',
     },
+    {
+      ...BasemapSelectorControlMetadata,
+      componentClass: BasemapSelectorControlComponent,
+      selector: 'app-basemap-selector-control',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -65,6 +74,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     ProxificationLoggingComponent,
     ProjectionDataBackportComponent,
     ProjectionDataCurrentComponent,
+    BasemapSelectorControlComponent,
   ];
 }
 

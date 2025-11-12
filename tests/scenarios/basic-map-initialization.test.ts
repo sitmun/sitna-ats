@@ -1,4 +1,5 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { ComponentFixture} from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { BasicMapInitializationComponent } from '../../src/app/scenarios/basic-map-initialization/basic-map-initialization.component';
 import { SitnaConfigService } from '../../src/app/services/sitna-config.service';
 import type { TestMetadata } from './shared/test-metadata.types';

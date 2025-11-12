@@ -31,42 +31,41 @@ declare class Layer {
   opacity?: number;
   visible?: boolean;
   isBase?: boolean;
-  
+
   constructor(options?: LayerOptions);
-  
+
   /**
    * Set layer visibility
    */
   setVisibility(visible: boolean): Layer;
-  
+
   /**
    * Get layer visibility
    */
   getVisibility(): boolean;
-  
+
   /**
    * Get layer opacity
    */
   getOpacity(): number;
-  
+
   /**
    * Set layer opacity
    */
   setOpacity(opacity: number, silent?: boolean): Promise<void>;
-  
+
   /**
    * Check if layer is compatible with CRS
    */
   isCompatible(crs: string): boolean;
-  
+
   /**
    * Check if layer is raster
    */
   isRaster(): boolean;
-  
+
   [key: string]: unknown;
 }
 
 export default Layer;
-export { LayerOptions };
 

@@ -1,8 +1,11 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import type { OnInit, OnChanges, SimpleChanges} from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { marked } from 'marked';
+import { LoggingService } from '../../services/logging.service';
+import { ErrorHandlingService } from '../../services/error-handling.service';
 
 @Component({
   selector: 'app-findings-section',
@@ -23,6 +26,8 @@ export class FindingsSectionComponent implements OnInit, OnChanges {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly logger = inject(LoggingService);
+  private readonly errorHandler = inject(ErrorHandlingService);
 
   constructor() {
     // Configure marked options
@@ -79,8 +84,8 @@ export class FindingsSectionComponent implements OnInit, OnChanges {
     this.markdownHtml = null;
 
     // Log the path for debugging
-    console.log('Loading markdown file from:', filePath);
-    console.log('Route path:', this.route.snapshot.routeConfig?.path);
+    this.logger.info('Loading markdown file from:', filePath);
+    this.logger.info('Route path:', this.route.snapshot.routeConfig?.path);
 
     this.http.get(filePath, { responseType: 'text' }).subscribe({
       next: (content) => {
@@ -91,7 +96,7 @@ export class FindingsSectionComponent implements OnInit, OnChanges {
       error: (error) => {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load markdown file';
         const fullError = `${errorMessage} (path: ${filePath})`;
-        console.error('Failed to load markdown:', fullError, error);
+        this.errorHandler.handleError(error, `FindingsSectionComponent.loadMarkdownFile (path: ${filePath})`);
         this.markdownError = fullError;
         this.markdownLoading = false;
       },

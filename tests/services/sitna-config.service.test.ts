@@ -16,10 +16,10 @@ describe('SitnaConfigService', () => {
     loggingService = TestBed.inject(LoggingService);
 
     // Mock SITNA global
-    (window as any).SITNA = {
+    window.SITNA = {
       Map: class MockMap {
-        constructor(containerId: string, options: MapOptions) {
-          return { containerId, options };
+        constructor(div: HTMLElement | string, options?: MapOptions) {
+          return { containerId: typeof div === 'string' ? div : div.id, options };
         }
       },
       Cfg: {
@@ -35,11 +35,11 @@ describe('SitnaConfigService', () => {
           Vector: 'Vector',
         },
       },
-    };
+    } as typeof window.SITNA;
   });
 
   afterEach(() => {
-    delete (window as any).SITNA;
+    delete window.SITNA;
   });
 
   it('should be created', () => {
@@ -52,7 +52,8 @@ describe('SitnaConfigService', () => {
       const map = service.initializeMap(containerId);
 
       expect(map).toBeTruthy();
-      expect((map as any).containerId).toBe(containerId);
+      const mockMap = map as unknown as { containerId: string; options?: MapOptions };
+      expect(mockMap.containerId).toBe(containerId);
     });
 
     it('should initialize a map with custom options', () => {
@@ -64,11 +65,12 @@ describe('SitnaConfigService', () => {
       const map = service.initializeMap(containerId, customOptions);
 
       expect(map).toBeTruthy();
-      expect((map as any).options).toMatchObject(customOptions);
+      const mockMap = map as unknown as { containerId: string; options?: MapOptions };
+      expect(mockMap.options).toMatchObject(customOptions);
     });
 
     it('should return null when SITNA is not available', () => {
-      delete (window as any).SITNA;
+      delete window.SITNA;
       const errorSpy = jest.spyOn(loggingService, 'error');
 
       const map = service.initializeMap('test-map');
@@ -113,7 +115,7 @@ describe('SitnaConfigService', () => {
       const defaultOptions = service.getDefaultMapOptions();
 
       expect(defaultOptions.layout).toBe('test-layout');
-      expect((window as any).SITNA.Cfg.layout).toBe('test-layout');
+      expect(window.SITNA?.Cfg?.layout).toBe('test-layout');
     });
 
     it('should apply proxy from config', () => {
@@ -125,7 +127,7 @@ describe('SitnaConfigService', () => {
       const defaultOptions = service.getDefaultMapOptions();
 
       expect(defaultOptions.proxy).toBe('https://proxy.example.com');
-      expect((window as any).SITNA.Cfg.proxy).toBe('https://proxy.example.com');
+      expect(window.SITNA?.Cfg?.proxy).toBe('https://proxy.example.com');
     });
 
     it('should not apply empty layout', () => {
@@ -153,7 +155,7 @@ describe('SitnaConfigService', () => {
       expect(mapOptions.layout).toBe('scenario-layout');
       expect(mapOptions.crs).toBe('EPSG:3857');
       // Global config should not be modified
-      expect((window as any).SITNA.Cfg.layout).not.toBe('scenario-layout');
+      expect(window.SITNA?.Cfg?.layout).not.toBe('scenario-layout');
     });
 
     it('should handle controls configuration', () => {
@@ -169,8 +171,9 @@ describe('SitnaConfigService', () => {
       const mapOptions = service.applyConfigToMapOptions(config);
 
       expect(mapOptions.controls).toBeDefined();
-      expect((mapOptions.controls as any).layerCatalog).toBeDefined();
-      expect((mapOptions.controls as any).layerCatalog.div).toBe('catalog-div');
+      const controls = mapOptions.controls as Record<string, unknown>;
+      expect(controls['layerCatalog']).toBeDefined();
+      expect((controls['layerCatalog'] as Record<string, unknown>)['div']).toBe('catalog-div');
     });
 
     it('should handle disabled controls', () => {
@@ -182,7 +185,8 @@ describe('SitnaConfigService', () => {
 
       const mapOptions = service.applyConfigToMapOptions(config);
 
-      expect((mapOptions.controls as any).layerCatalog).toBe(false);
+      const controls = mapOptions.controls as Record<string, unknown>;
+      expect(controls['layerCatalog']).toBe(false);
     });
   });
 
@@ -193,12 +197,22 @@ describe('SitnaConfigService', () => {
       service.setLayout('test-layout');
 
       expect(warnSpy).toHaveBeenCalledWith(
-        'setLayout() should be set via MapOptions.layout during map initialization'
+        'setLayout() is deprecated. Use MapOptions.layout during map initialization instead.'
+      );
+    });
+
+    it('configureDefaultLayers should log a warning when SITNA is available', () => {
+      const warnSpy = jest.spyOn(loggingService, 'warn');
+
+      service.configureDefaultLayers([]);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'configureDefaultLayers() is deprecated. Add layers via map.addLayer() after map initialization.'
       );
     });
 
     it('configureDefaultLayers should log an error when SITNA is not available', () => {
-      delete (window as any).SITNA;
+      delete window.SITNA;
       const errorSpy = jest.spyOn(loggingService, 'error');
 
       service.configureDefaultLayers([]);

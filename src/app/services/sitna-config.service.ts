@@ -1,9 +1,9 @@
-import { Injectable, inject } from '@angular/core';
+import {inject, Injectable} from '@angular/core';
 import type SitnaMap from 'api-sitna';
-import type { MapOptions } from 'api-sitna/TC/Map';
-import type { SitnaConfig, SitnaControls } from '../types/sitna.types';
+import type {MapOptions} from 'api-sitna/TC/Map';
+import type {SitnaConfig, SitnaControls} from '../types/sitna.types';
 import defaultMapOptionsJson from '../../environments/sitna-config-default.json';
-import { LoggingService } from './logging.service';
+import {LoggingService} from './logging.service';
 
 /**
  * Service for SITNA map configuration management.
@@ -34,11 +34,8 @@ export class SitnaConfigService {
     }
 
     const SITNA = window.SITNA;
-    if (!SITNA) {
-      return null;
-    }
     const mapOptions = { ...this.defaultMapOptions, ...options };
-    return new SITNA.Map(containerId, mapOptions) as SitnaMap;
+    return new SITNA.Map(containerId, mapOptions);
   }
 
   /**
@@ -175,8 +172,7 @@ export class SitnaConfigService {
 
     // Apply controls if provided
     if (config.controls) {
-      const convertedControls = this.convertControlsConfig(config.controls);
-      mapOptions.controls = convertedControls;
+      mapOptions.controls = this.convertControlsConfig(config.controls);
     }
 
     // Apply proxy if provided
@@ -273,6 +269,21 @@ export class SitnaConfigService {
 
     if (controls.overviewMap !== undefined) {
       result['overviewMap'] = controls.overviewMap;
+    }
+
+    // Handle basemapSelector: can be false (disabled) or an object (enabled with config)
+    const controlsRecord = controls as Record<string, unknown>;
+    if (controlsRecord['basemapSelector'] === false) {
+      result['basemapSelector'] = false;
+    } else if (controlsRecord['basemapSelector'] !== undefined && typeof controlsRecord['basemapSelector'] === 'object') {
+      result['basemapSelector'] = controlsRecord['basemapSelector'];
+    }
+
+    // Handle offlineMapMaker: can be false (disabled) or an object (enabled with config)
+    if (controlsRecord['offlineMapMaker'] === false) {
+      result['offlineMapMaker'] = false;
+    } else if (controlsRecord['offlineMapMaker'] !== undefined && typeof controlsRecord['offlineMapMaker'] === 'object') {
+      result['offlineMapMaker'] = controlsRecord['offlineMapMaker'];
     }
 
     return result;

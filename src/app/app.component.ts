@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import type { OnInit} from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import packageLockJson from '../../package-lock.json';
 import packageJson from '../../package.json';

@@ -15,19 +15,19 @@ import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
-  name: 'Basic Map Initialization',
-  description: 'Standard SITNA map initialization without patching',
-  tags: ['map', 'initialization', 'basic'],
-  route: 'basic-map-initialization',
+  name: 'Basemap Selector Control',
+  description: 'Map with basemap selector and offline map maker controls',
+  tags: ['map', 'controls', 'basemap', 'layout'],
+  route: 'basemap-selector-control',
 };
 
 @Component({
-  selector: 'app-basic-map-initialization',
-  templateUrl: './basic-map-initialization.component.html',
-  styleUrls: ['./basic-map-initialization.component.scss'],
+  selector: 'app-basemap-selector-control',
+  templateUrl: './basemap-selector-control.component.html',
+  styleUrls: ['./basemap-selector-control.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BasicMapInitializationComponent
+export class BasemapSelectorControlComponent
   implements OnInit, OnDestroy
 {
   readonly metadata = SCENARIO_METADATA;
@@ -58,9 +58,9 @@ export class BasicMapInitializationComponent
     const scenarioOptions =
       this.configService.applyConfigToMapOptions(scenarioConfig);
 
-    // Basic usage - no patching
+    // Initialize map with controls
     this.map = this.configService.initializeMap(
-      'mapa-basic-map-initialization',
+      'mapa-basemap-selector-control',
       scenarioOptions
     );
 
@@ -68,14 +68,14 @@ export class BasicMapInitializationComponent
       this.map
         .loaded(() => {
           this.logger.warn(
-            'Basic Map Initialization: Map loaded successfully',
+            'Basemap Selector Control: Map loaded successfully',
             this.map
           );
         })
         .catch((error: unknown) => {
           this.errorHandler.handleError(
             error,
-            'BasicMapInitializationComponent.initializeMap'
+            'BasemapSelectorControlComponent.initializeMap'
           );
         });
     }

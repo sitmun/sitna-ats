@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import type { OnInit} from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import { ScenarioRegistryService } from '../../services/scenario-registry.service';
@@ -9,6 +10,7 @@ import { registerScenarios } from '../../scenarios/scenario-registry';
   selector: 'app-scenario-selector',
   templateUrl: './scenario-selector.component.html',
   styleUrls: ['./scenario-selector.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScenarioSelectorComponent implements OnInit {
   private readonly router = inject(Router);

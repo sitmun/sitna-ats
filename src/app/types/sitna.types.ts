@@ -2,9 +2,6 @@
  * TypeScript types for SITNA configuration
  */
 
-import type { MapOptions } from 'api-sitna/TC/Map';
-import type SitnaMap from 'api-sitna';
-
 export interface SitnaLayer {
   id?: string;
   title: string;
