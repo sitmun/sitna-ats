@@ -20,6 +20,8 @@ import {
   createPatchManager,
   type PatchManager,
 } from '../../utils/monkey-patch';
+import type Proxification from '../../../types/api-sitna/TC/tool/Proxification';
+import type { TCNamespace } from '../../../types/api-sitna/TC/TCNamespace';
 
 export interface CallerInfo {
   functionName?: string;
@@ -44,30 +46,6 @@ export interface ProxificationLogEntry {
   duration?: number; // Duration in milliseconds for async operations
 }
 
-/**
- * Type definition for TC.tool.Proxification constructor
- */
-type ProxificationConstructor = new (
-  proxy: unknown,
-  options?: unknown
-) => object;
-
-/**
- * Type definition for TC.tool namespace
- */
-interface TCToolNamespace {
-  Proxification?: ProxificationConstructor;
-  [key: string]: unknown;
-}
-
-/**
- * Type definition for TC namespace
- */
-interface TCNamespace {
-  tool?: TCToolNamespace;
-  loadProjDefAsync?: (...args: unknown[]) => Promise<unknown>;
-  [key: string]: unknown;
-}
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
   name: 'Proxification Logging',
@@ -712,7 +690,7 @@ export class ProxificationLoggingComponent
         // Set it directly on TC.tool.Proxification (exactly as TC.js does)
         // TC.tool.Proxification = (await import(...)).default;
         if (TC.tool) {
-          TC.tool.Proxification = Proxification as ProxificationConstructor;
+          TC.tool.Proxification = Proxification as typeof Proxification;
           this.logger.info('Proxification loaded and set on TC.tool.Proxification successfully');
           this.logger.debug('[Proxification Patching] Proxification set on TC.tool.Proxification:', !!TC.tool.Proxification);
           this.logger.debug('[Proxification Patching] Verification - TC.tool.Proxification:', !!TC.tool?.Proxification);
@@ -770,7 +748,7 @@ export class ProxificationLoggingComponent
         self.logger.debug('[Proxification Patching] PATCHED CONSTRUCTOR CALLED!');
         const instance = new OriginalConstructor(proxy, options);
         const instanceId = `instance-${++self.instanceCounter}`;
-        self.instanceMap.set(instance, instanceId);
+        self.instanceMap.set(instance as object, instanceId);
         self.statistics.instanceCount++;
 
         // Store in debug maps
@@ -1038,13 +1016,13 @@ export class ProxificationLoggingComponent
     const self = this;
 
     // Use Object.defineProperty to intercept when Proxification is set
-    let proxificationValue: ProxificationConstructor | undefined = tool.Proxification;
+    let proxificationValue: typeof Proxification | undefined = tool.Proxification;
 
     Object.defineProperty(tool, 'Proxification', {
       get: function () {
         return proxificationValue;
       },
-      set: function (value: ProxificationConstructor | undefined) {
+      set: function (value: typeof Proxification | undefined) {
         proxificationValue = value;
         if (value && self.patchingState !== 'patched') {
           self.logger.info(

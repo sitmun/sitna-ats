@@ -36,23 +36,3 @@ export interface SitnaConfig {
   [key: string]: unknown;
 }
 
-declare global {
-  interface Window {
-    SITNA?: {
-      Map: new (div: HTMLElement | string, options?: import('api-sitna/TC/Map').MapOptions) => import('api-sitna').default;
-      Cfg?: import('api-sitna').Cfg;
-      Consts?: import('api-sitna').Consts;
-      [key: string]: unknown;
-    };
-    TC?: {
-      tool?: {
-        Proxification?: new (proxy: unknown, options?: unknown) => unknown;
-        [key: string]: unknown;
-      };
-      loadProjDefAsync?: (...args: unknown[]) => Promise<unknown>;
-      [key: string]: unknown;
-    };
-    SITNA_BASE_URL?: string;
-  }
-}
-

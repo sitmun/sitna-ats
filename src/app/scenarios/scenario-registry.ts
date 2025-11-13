@@ -22,6 +22,10 @@ import {
   BasemapSelectorControlComponent,
   SCENARIO_METADATA as BasemapSelectorControlMetadata,
 } from './basemap-selector-control/basemap-selector-control.component';
+import {
+  BasemapSelectorSilmeControlComponent,
+  SCENARIO_METADATA as BasemapSelectorSilmeControlMetadata,
+} from './basemap-selector-silme-control/basemap-selector-silme-control.component';
 
 /**
  * Register all scenarios with the registry service
@@ -56,6 +60,11 @@ export function registerScenarios(
       componentClass: BasemapSelectorControlComponent,
       selector: 'app-basemap-selector-control',
     },
+    {
+      ...BasemapSelectorSilmeControlMetadata,
+      componentClass: BasemapSelectorSilmeControlComponent,
+      selector: 'app-basemap-selector-silme-control',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -75,6 +84,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     ProjectionDataBackportComponent,
     ProjectionDataCurrentComponent,
     BasemapSelectorControlComponent,
+    BasemapSelectorSilmeControlComponent,
   ];
 }
 
