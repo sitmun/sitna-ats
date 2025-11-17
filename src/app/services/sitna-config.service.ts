@@ -279,6 +279,13 @@ export class SitnaConfigService {
       result['basemapSelector'] = controlsRecord['basemapSelector'];
     }
 
+    // Handle basemapSelectorSilme: can be false (disabled) or an object (enabled with config)
+    if (controlsRecord['basemapSelectorSilme'] === false) {
+      result['basemapSelectorSilme'] = false;
+    } else if (controlsRecord['basemapSelectorSilme'] !== undefined && typeof controlsRecord['basemapSelectorSilme'] === 'object') {
+      result['basemapSelectorSilme'] = controlsRecord['basemapSelectorSilme'];
+    }
+
     // Handle offlineMapMaker: can be false (disabled) or an object (enabled with config)
     if (controlsRecord['offlineMapMaker'] === false) {
       result['offlineMapMaker'] = false;

@@ -1,19 +1,9 @@
 /**
- * Import TC namespace type definition
+ * Type definitions for api-sitna module
  */
+
 import type { TCNamespace } from './api-sitna/TC/TCNamespace';
 export type { TCNamespace };
-
-/**
- * Import type definitions for re-export
- */
-import type { Cfg as CfgType } from './api-sitna/TC/Cfg';
-import type { Consts as ConstsType } from './api-sitna/TC/Consts';
-
-type MapOptions = import('./api-sitna/TC/Map').MapOptions;
-type SitnaMap = import('./api-sitna/SITNA/Map').default;
-type Cfg = import('./api-sitna/TC/Cfg').default;
-type Consts = import('./api-sitna/TC/Consts').default;
 
 /**
  * Main api-sitna module declaration
@@ -57,9 +47,7 @@ declare module 'api-sitna' {
 
   // Export values
   export { Cfg, Consts, feature, layer, SitnaMap as Map };
-  // Export types - TypeScript allows same name for value and type
-  type Cfg = CfgType;
-  type Consts = ConstsType;
+  // Export types
   export type { Cfg, Consts };
   export default SitnaMap;
 }
@@ -84,7 +72,7 @@ declare module 'api-sitna/TC/Map' {
  * SITNA Layer module - exports layer options
  */
 declare module 'api-sitna/SITNA/layer/Layer' {
-  export { LayerOptions } from './api-sitna/SITNA/layer/Layer';
+  export type { LayerOptions } from './api-sitna/SITNA/layer/Layer';
 }
 
 /**
@@ -96,9 +84,12 @@ declare global {
      * SITNA namespace - main API entry point
      */
     SITNA?: {
-      Map: new (div: HTMLElement | string, options?: MapOptions) => SitnaMap;
-      Cfg?: Cfg;
-      Consts?: Consts;
+      Map: new (
+        div: HTMLElement | string,
+        options?: import('./api-sitna/TC/Map').MapOptions
+      ) => import('./api-sitna/SITNA/Map').default;
+      Cfg?: import('./api-sitna/TC/Cfg').default;
+      Consts?: import('./api-sitna/TC/Consts').default;
       [key: string]: unknown;
     };
     /**

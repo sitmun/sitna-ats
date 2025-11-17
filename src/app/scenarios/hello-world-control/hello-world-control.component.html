@@ -1,0 +1,22 @@
+<mat-card class="scenario-container mat-typography">
+  <mat-card-header>
+    <mat-card-title>{{ metadata.name }}</mat-card-title>
+    <mat-card-subtitle>{{ metadata.description }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <app-findings-section
+      [markdownFile]="'/assets/scenarios/hello-world-control/findings.md'"
+      [collapsed]="true"
+      [hideTitle]="false">
+    </app-findings-section>
+  </mat-card-content>
+  <mat-card-content>
+    <p class="mat-body-1">
+      The map boots with the standard SITNA control set plus a custom
+      Handlebars-based control injected into the first control slot.
+    </p>
+    <div id="mapa-hello-world-control" class="map-container"></div>
+  </mat-card-content>
+</mat-card>
+
+

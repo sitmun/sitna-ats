@@ -79,13 +79,16 @@ export class BasemapSelectorSilmeControlComponent
 
   constructor() {
     afterNextRender(() => {
-      this.applyPatchWithRetry()
+      this.loadControl()
+        .then(() => {
+          return this.applyPatchWithRetry();
+        })
         .then(() => {
           this.initializeMap();
         })
         .catch((error) => {
           this.logger.error(
-            'Failed to apply patch, initializing map anyway',
+            'Failed to load control or apply patch, initializing map anyway',
             error
           );
           this.initializeMap();
@@ -104,6 +107,37 @@ export class BasemapSelectorSilmeControlComponent
 
   private getTC(): TCNamespace | undefined {
     return window.TC || (globalThis as { TC?: TCNamespace }).TC;
+  }
+
+  private async loadControl(): Promise<void> {
+    // Wait for TC to be available (needed for TC.syncLoadJS in the controls)
+    const maxRetries = 50;
+    const delayMs = 100;
+
+    for (let i = 0; i < maxRetries; i++) {
+      const TC = this.getTC();
+      if (TC && TC['apiLocation']) {
+        try {
+          // Load SilmeUtils.js first (defines utility functions including getLastBaseMapIndex)
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require('./src/SilmeUtils.js');
+          this.logger.warn('Loaded SilmeUtils.js');
+
+          // Load the BasemapSelectorSilme control
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require('./src/controls/BasemapSelectorSilme.js');
+          this.logger.warn('Loaded BasemapSelectorSilme control');
+          return;
+        } catch (error) {
+          this.logger.error('Failed to load controls', error);
+          throw error;
+        }
+      }
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('TC not available for loading controls');
   }
 
   private async applyPatchWithRetry(
@@ -131,11 +165,7 @@ export class BasemapSelectorSilmeControlComponent
     }
 
     try {
-      // First, load the TC.patch.js file to apply the actual patches
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('./src/TC.patch.js');
-
-      this.logger.warn('Loaded TC.patch.js - applying AOP wrappers');
+      this.logger.warn('Applying in-component AOP wrappers');
 
       const component = this;
       const restores: Array<() => void> = [];
@@ -294,6 +324,23 @@ export class BasemapSelectorSilmeControlComponent
       this.map
         .loaded()
         .then(() => {
+          // Set global silmeMap variable for use in patches and SilmeSecondBaseLayer.js
+          // Access the internal map wrap through TC.Map.get after map is loaded
+          const TC = this.getTC();
+          const mapElement = document.querySelector('#mapa-basemap-selector-silme-control');
+          if (TC && mapElement && (window as { silmeMap?: unknown }).silmeMap === undefined) {
+            try {
+              const TCWithMap = TC as { Map?: { get: (element: Element | null) => unknown } };
+              const mapInstance = TCWithMap.Map?.get(mapElement);
+              if (mapInstance) {
+                (window as { silmeMap?: unknown }).silmeMap = mapInstance;
+                this.logger.warn('Set global silmeMap variable');
+              }
+            } catch (error) {
+              this.logger.warn('Could not set silmeMap, patches may not work correctly', error);
+            }
+          }
+
           this.ngZone.run(() => {
             this.cdr.markForCheck();
           });

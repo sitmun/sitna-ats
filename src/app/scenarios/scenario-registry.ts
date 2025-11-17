@@ -26,6 +26,10 @@ import {
   BasemapSelectorSilmeControlComponent,
   SCENARIO_METADATA as BasemapSelectorSilmeControlMetadata,
 } from './basemap-selector-silme-control/basemap-selector-silme-control.component';
+import {
+  HelloWorldControlComponent,
+  SCENARIO_METADATA as HelloWorldControlMetadata,
+} from './hello-world-control/hello-world-control.component';
 
 /**
  * Register all scenarios with the registry service
@@ -65,6 +69,11 @@ export function registerScenarios(
       componentClass: BasemapSelectorSilmeControlComponent,
       selector: 'app-basemap-selector-silme-control',
     },
+    {
+      ...HelloWorldControlMetadata,
+      componentClass: HelloWorldControlComponent,
+      selector: 'app-hello-world-control',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -85,6 +94,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     ProjectionDataCurrentComponent,
     BasemapSelectorControlComponent,
     BasemapSelectorSilmeControlComponent,
+    HelloWorldControlComponent,
   ];
 }
 

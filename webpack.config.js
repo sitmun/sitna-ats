@@ -50,7 +50,34 @@ module.exports = {
           to: 'js/api-sitna/resources/data/crs',
           noErrorOnMissing: true
         },
-        { from: path.join(apiSitnaSource, 'wmts'), to: 'js/api-sitna/wmts' }
+        { from: path.join(apiSitnaSource, 'wmts'), to: 'js/api-sitna/wmts' },
+        // Copy Handlebars templates from scenario folders to assets/js/patch/templates/{scenario-name}/
+        {
+          from: '**/*.hbs',
+          context: path.join(__dirname, 'src/app/scenarios'),
+          to({ context, absoluteFilename }) {
+            // Extract scenario name and template filename from the absolute path
+            // Example: .../src/app/scenarios/basemap-selector-silme-control/src/templates/BasemapSelectorSilme.hbs
+            const relativePath = path.relative(context, absoluteFilename);
+            const match = relativePath.match(/^([^/]+)\/src\/templates\/(.+)$/);
+            if (match) {
+              const [, scenarioName, templateName] = match;
+              return path.join('assets/js/patch/templates', scenarioName, templateName).replace(/\\/g, '/');
+            }
+            // Fallback: preserve structure but move to assets/js/patch/templates
+            return path.join('assets/js/patch/templates', relativePath).replace(/\\/g, '/');
+          },
+          globOptions: {
+            ignore: ['**/node_modules/**']
+          }
+        },
+        {
+          from: path.join(
+            __dirname,
+            'src/app/scenarios/hello-world-control/layout'
+          ),
+          to: 'js/api-sitna/layout/hello-world-control'
+        }
       ]
     })
   ]
