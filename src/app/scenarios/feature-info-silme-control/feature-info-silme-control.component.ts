@@ -1,24 +1,16 @@
-import {
-  Component,
-  type OnDestroy,
-  type OnInit,
-  ChangeDetectionStrategy,
-  afterNextRender,
-  inject,
-} from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import type SitnaMap from 'api-sitna';
-import { SitnaConfigService } from '../../services/sitna-config.service';
 import scenarioConfigJson from './sitna-config.json';
 import type { SitnaConfig } from '../../types/sitna.types';
-import { LoggingService } from '../../services/logging.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
-import type { TCNamespace } from '../../../types/api-sitna';
+import { BaseScenarioComponent } from '../base-scenario.component';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
   name: 'FeatureInfo Silme Control',
   description:
-    'Map with FeatureInfoSilme control that extends TC.control.FeatureInfo with a custom template.',
+    'Map with FeatureInfoSilme control that extends TC.control.FeatureInfo with a custom template. ' +
+    'IMPORTANT: The standard FeatureInfo control must be disabled (featureInfo: false) when using FeatureInfoSilme, ' +
+    'as both controls use the same CSS class and would conflict if both are enabled.',
   tags: ['sitna-4.1', 'controls', 'feature-info', 'silme'],
   route: 'feature-info-silme-control',
 };
@@ -29,140 +21,119 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   styleUrls: ['./feature-info-silme-control.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FeatureInfoSilmeControlComponent implements OnInit, OnDestroy {
-  readonly metadata = SCENARIO_METADATA;
-  map: SitnaMap | null = null;
-  private readonly configService = inject(SitnaConfigService);
-  private readonly logger = inject(LoggingService);
-  private readonly errorHandler = inject(ErrorHandlingService);
-  private controlLoadPromise: Promise<void> | null = null;
-
+export class FeatureInfoSilmeControlComponent extends BaseScenarioComponent {
   constructor() {
-    afterNextRender(() => {
-      this.loadControlAndInitializeMap();
+    super();
+    this.metadata = SCENARIO_METADATA;
+  }
+
+  protected initializeMap(): void {
+    const scenarioConfig = scenarioConfigJson as SitnaConfig;
+
+    this.initializeMapWithControl({
+      scenarioConfig,
+      controlName: 'FeatureInfoSilme',
+      checkLoaded: () => this.isTCControlRegistered('FeatureInfoSilme'),
+      preLoad: ['tc:apiLocation', 'tc:syncLoadJS'],
+      loadScript: () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('./src/FeatureInfoSilme.js');
+      },
+      mapOptions: {
+        successMessage: 'FeatureInfo Silme Control: Map loaded successfully',
+        onLoaded: async (map) => {
+          // Wait a bit for the map to fully initialize before validating
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          // Validate template is loaded
+          this.validateTemplateLoaded(map);
+        },
+      },
     });
   }
 
-  ngOnInit(): void {
-    // Map initialization happens in afterNextRender callback
-  }
-
-  ngOnDestroy(): void {
-    this.destroyMap();
-  }
-
-  private getTC(): TCNamespace | undefined {
-    return window.TC || (globalThis as { TC?: TCNamespace }).TC;
-  }
-
-  private async ensureControlLoaded(): Promise<void> {
-    const TC = this.getTC();
-    const control = TC?.control as { [key: string]: unknown } | undefined;
-    if (control?.['FeatureInfoSilme']) {
-      return;
-    }
-
-    if (this.controlLoadPromise) {
-      return this.controlLoadPromise;
-    }
-
-    this.controlLoadPromise = (async () => {
-      await this.waitForTC();
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('./src/FeatureInfoSilme.js');
-        this.logger.warn('FeatureInfoSilme control script loaded');
-      } catch (error) {
-        this.logger.error('FeatureInfoSilme control script failed to load', error);
-        throw error;
-      }
-    })();
-
-    return this.controlLoadPromise;
-  }
-
-  private async waitForTC(
-    maxRetries: number = 50,
-    delayMs: number = 100
-  ): Promise<void> {
-    for (let i = 0; i < maxRetries; i++) {
-      const TC = this.getTC();
-      const tcRecord = TC as { [key: string]: unknown } | undefined;
-      if (tcRecord?.['apiLocation'] && tcRecord?.['syncLoadJS']) {
+  /**
+   * Validate that the FeatureInfoSilme template is loaded and being used
+   */
+  private validateTemplateLoaded(map: SitnaMap): void {
+    try {
+      const TC = this.tcNamespaceService.getTC();
+      if (!TC) {
+        this.logger.warn('TC namespace not available for template validation');
         return;
       }
-      if (i < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+      // Access controls directly from the map instance
+      const mapAny = map as {
+        controls?: Array<{
+          constructor?: { name?: string };
+          template?: Record<string, string>;
+          CLASS?: string;
+        }>;
+      };
+
+      // Check if map controls are initialized
+      if (!mapAny.controls || !Array.isArray(mapAny.controls)) {
+        this.logger.warn('Map controls not yet initialized, skipping template validation');
+        return;
       }
-    }
-    throw new Error('TC not available after retries');
-  }
 
-  private async loadControlAndInitializeMap(): Promise<void> {
-    try {
-      // Load control script before initializing map so SITNA can auto-instantiate it from config
-      await this.ensureControlLoaded();
-      this.initializeMap();
-    } catch (error) {
-      this.logger.error(
-        'Failed to load control before map initialization, initializing map anyway',
-        error
-      );
-      this.initializeMap();
-    }
-  }
+      // Find FeatureInfoSilme control by checking constructor name
+      const featureInfoControl = mapAny.controls.find((control) => {
+        const constructorName = control.constructor?.name;
+        return constructorName === 'FeatureInfoSilme' || constructorName === 'TC.control.FeatureInfoSilme';
+      });
 
-  private initializeMap(): void {
-    const scenarioConfig = scenarioConfigJson as SitnaConfig;
+      if (!featureInfoControl) {
+        this.logger.warn('No FeatureInfoSilme controls found on map');
+        return;
+      }
 
-    const scenarioOptions = this.configService.applyConfigToMapOptions(
-      scenarioConfig
-    );
-
-    this.map = this.configService.initializeMap(
-      'mapa-feature-info-silme-control',
-      scenarioOptions
-    );
-
-    if (this.map !== null && this.map !== undefined) {
-      this.map
-        .loaded()
-        .then(() => this.onMapLoaded())
-        .catch((error: unknown) => {
-          this.errorHandler.handleError(
-            error,
-            'FeatureInfoSilmeControlComponent.initializeMap'
-          );
+      if (featureInfoControl.template && featureInfoControl.CLASS) {
+        const templatePath = featureInfoControl.template[featureInfoControl.CLASS];
+        this.logger.warn('FeatureInfoSilme template validation:', {
+          templatePath,
+          templateObject: featureInfoControl.template,
+          class: featureInfoControl.CLASS,
         });
-    }
-  }
 
-  private async onMapLoaded(): Promise<void> {
-    try {
-      // Control should be auto-instantiated by SITNA from config, but verify it exists
-      const TC = this.getTC();
-      const control = TC?.control as { [key: string]: unknown } | undefined;
-      if (control?.['FeatureInfoSilme']) {
-        this.logger.warn(
-          'FeatureInfo Silme Control: Map loaded successfully, control should be auto-instantiated from config',
-          this.map
-        );
+        // Check if template path matches expected path
+        const expectedPath = 'assets/js/patch/templates/feature-info-silme-control/FeatureInfoSilme.hbs';
+        if (templatePath === expectedPath) {
+          this.logger.warn('✅ Template path is correct:', templatePath);
+        } else {
+          this.logger.error('❌ Template path mismatch!', {
+            expected: expectedPath,
+            actual: templatePath,
+          });
+        }
+
+        // Try to fetch the template to verify it exists
+        fetch(templatePath)
+          .then((response) => {
+            if (response.ok) {
+              this.logger.warn('✅ Template file exists and is accessible:', templatePath);
+              return response.text();
+            } else {
+              this.logger.error('❌ Template file not found or not accessible:', {
+                path: templatePath,
+                status: response.status,
+                statusText: response.statusText,
+              });
+              return null;
+            }
+          })
+          .catch((error) => {
+            this.logger.error('❌ Error fetching template file:', {
+              path: templatePath,
+              error,
+            });
+          });
       } else {
-        this.logger.warn(
-          'FeatureInfo Silme Control: Map loaded, but control class not found. It may be instantiated by SITNA from config.',
-          this.map
-        );
+        this.logger.warn('Control template not yet loaded or not accessible');
       }
     } catch (error) {
-      this.errorHandler.handleError(
-        error,
-        'FeatureInfoSilmeControlComponent.onMapLoaded'
-      );
+      this.logger.error('Error during template validation:', error);
     }
-  }
-
-  private destroyMap(): void {
-    this.map = null;
   }
 }
 

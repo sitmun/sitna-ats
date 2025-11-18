@@ -1,20 +1,11 @@
 import {
   Component,
-  type OnInit,
-  type OnDestroy,
-  afterNextRender,
   inject,
-  ChangeDetectorRef,
-  NgZone,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import type SitnaMap from 'api-sitna';
-import { SitnaConfigService } from '../../services/sitna-config.service';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../types/sitna.types';
-import { LoggingService } from '../../services/logging.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
+import { BaseScenarioComponent } from '../base-scenario.component';
 import {
   createPatchManager,
   type PatchManager,
@@ -23,23 +14,7 @@ import {
 // The patch file directly modifies TC.getProjectionData when loaded
 // We'll require it in applyPatch() after TC is available and save the original for restoration
 
-export interface ProjectionData {
-  code: string;
-  kind: string;
-  name: string;
-  wkt: string;
-  proj4: string;
-  bbox: number[];
-  unit: string | null;
-  accuracy: number | null;
-}
-
-export interface TCNamespace {
-  apiLocation?: string;
-  getProjectionData?: (options?: { crs?: string; sync?: boolean }) => ProjectionData | Promise<ProjectionData | false | { status: string; number_result: number; results: Array<{ code: string; name: string; def: string; proj4: string; unit: string | null }> }>;
-  projectionDataCache?: Record<string, ProjectionData>;
-  [key: string]: unknown;
-}
+import type { ProjectionData } from 'api-sitna';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
   name: 'Projection Data Current',
@@ -54,80 +29,56 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   templateUrl: './projection-data-current.component.html',
   styleUrls: ['./projection-data-current.component.scss'],
 })
-export class ProjectionDataCurrentComponent
-  implements OnInit, OnDestroy
-{
-  readonly metadata = SCENARIO_METADATA;
-  map: SitnaMap | null = null;
+export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
   epsgCode: string = '4326';
   testResult: ProjectionData | false | null = null;
   testError: string | null = null;
   isLoading: boolean = false;
   cachedCodes: string[] = [];
 
-  private readonly configService = inject(SitnaConfigService);
-  private readonly logger = inject(LoggingService);
-  private readonly errorHandler = inject(ErrorHandlingService);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly ngZone = inject(NgZone);
   private readonly snackBar = inject(MatSnackBar);
   private patchManager: PatchManager = createPatchManager();
 
   constructor() {
-    afterNextRender(() => {
-      this.applyPatchWithRetry().then(() => {
-        this.initializeMap();
-        this.updateCachedCodes();
-      }).catch((error) => {
-        this.logger.error('Failed to apply patch, initializing map anyway', error);
-        this.initializeMap();
-        this.updateCachedCodes();
-      });
+    super();
+    this.metadata = SCENARIO_METADATA;
+    this.initializeMapWithPreload({
+      preloadSteps: [
+        () => this.applyPatchWithRetry(),
+      ],
+      scenarioConfig: scenarioConfigJson as Parameters<typeof this.scenarioMapService.initializeScenarioMap>[0],
+      mapOptions: {
+        successMessage: 'Projection Data Current: Map loaded successfully',
+        onLoaded: () => {
+          // Fix CSS class mismatch in Coordinates control dialog
+          this.fixCoordinatesDialogCssClasses();
+          this.runInZoneHelper(() => {});
+          this.updateCachedCodes();
+        },
+      },
     });
   }
 
-  ngOnInit(): void {
-    // Map initialization happens in afterNextRender callback
-  }
-
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
     this.patchManager.restoreAll();
-    this.destroyMap();
+    super.ngOnDestroy();
   }
 
-  private getTC(): TCNamespace | undefined {
-    return (window as { TC?: TCNamespace }).TC || (globalThis as { TC?: TCNamespace }).TC;
+  private async applyPatchWithRetry(): Promise<void> {
+    const TC = await this.tcNamespaceService.waitForTC();
+    await this.applyPatch(TC);
   }
 
-  private async applyPatchWithRetry(maxRetries: number = 50, delayMs: number = 100): Promise<void> {
-    for (let i = 0; i < maxRetries; i++) {
-      const TC = this.getTC();
-      if (TC) {
-        await this.applyPatch();
-        return;
-      }
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-    throw new Error('TC namespace not available after retries');
-  }
-
-  private async applyPatch(): Promise<void> {
-    const TC = this.getTC();
-    if (!TC) {
-      this.logger.error('TC namespace not available for patch');
-      return;
-    }
+  private async applyPatch(TC: NonNullable<ReturnType<typeof this.tcNamespaceService.getTC>>): Promise<void> {
 
     try {
       // Save the original getProjectionData function before applying the patch
-      const originalGetProjectionData = TC.getProjectionData;
+      const originalGetProjectionData = TC['getProjectionData'];
 
       // Initialize TC.projectionDataCache if it doesn't exist
       // The patch will use this and expose it for analysis
-      if (!TC.projectionDataCache) {
-        TC.projectionDataCache = {};
+      if (!TC['projectionDataCache']) {
+        TC['projectionDataCache'] = {};
       }
 
       // Require the patch file - it will use TC.projectionDataCache and expose it
@@ -137,7 +88,7 @@ export class ProjectionDataCurrentComponent
       // Create a restore function to restore the original
       const restore = (): void => {
         if (TC && originalGetProjectionData) {
-          TC.getProjectionData = originalGetProjectionData;
+          TC['getProjectionData'] = originalGetProjectionData;
         }
       };
 
@@ -149,59 +100,23 @@ export class ProjectionDataCurrentComponent
     }
   }
 
-  private initializeMap(): void {
-    const scenarioConfig: SitnaConfig = scenarioConfigJson as SitnaConfig;
-    const scenarioOptions =
-      this.configService.applyConfigToMapOptions(scenarioConfig);
-
-    this.map = this.configService.initializeMap(
-      'mapa-projection-data-current',
-      scenarioOptions
-    );
-
-    if (this.map !== null && this.map !== undefined) {
-      this.map
-        .loaded()
-        .then(() => {
-          // Fix CSS class mismatch in Coordinates control dialog
-          this.fixCoordinatesDialogCssClasses();
-
-          this.ngZone.run(() => {
-            this.cdr.markForCheck();
-          });
-          this.logger.warn(
-            'Projection Data Current: Map loaded successfully',
-            this.map
-          );
-        })
-        .catch((error: unknown) => {
-          this.errorHandler.handleError(
-            error,
-            'ProjectionDataCurrentComponent.initializeMap'
-          );
-        });
-    }
-  }
-
-  private destroyMap(): void {
-    this.map = null;
+  protected initializeMap(): void {
+    // Map initialization is handled by initializeMapWithPreload in constructor
   }
 
   testGetProjectionDataSync(): void {
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
-    this.ngZone.run(() => {
-      this.cdr.markForCheck();
-    });
+    this.runInZoneHelper(() => {});
 
     try {
-      const TC = this.getTC();
-      if (!TC?.getProjectionData) {
+      if (!this.isTCPropertyRegistered('getProjectionData')) {
         throw new Error('TC.getProjectionData not available');
       }
 
-      const result = TC.getProjectionData({ crs: `EPSG:${this.epsgCode}`, sync: true });
+      const TC = this.tcNamespaceService.getTC()!;
+      const result = TC.getProjectionData!({ crs: `EPSG:${this.epsgCode}`, sync: true });
 
       // In sync mode, result should not be a Promise
       if (result instanceof Promise) {
@@ -232,7 +147,7 @@ export class ProjectionDataCurrentComponent
       } else if (result && typeof result === 'object' && 'code' in result) {
         // Direct ProjectionData format (fallback for compatibility)
         this.testResult = result;
-        this.snackBar.open(`✓ Sync test successful for EPSG:${this.testResult.code}`, 'Close', { duration: 3000 });
+        this.snackBar.open(`✓ Sync test successful for EPSG:${(this.testResult as ProjectionData).code}`, 'Close', { duration: 3000 });
         this.logger.warn('Sync test successful (direct format)', result);
         this.updateCachedCodes();
       } else if (result === null || result === false) {
@@ -250,9 +165,7 @@ export class ProjectionDataCurrentComponent
       this.logger.error('Sync test failed', error);
     } finally {
       this.isLoading = false;
-      this.ngZone.run(() => {
-        this.cdr.markForCheck();
-      });
+      this.runInZoneHelper(() => {});
     }
   }
 
@@ -260,17 +173,15 @@ export class ProjectionDataCurrentComponent
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
-    this.ngZone.run(() => {
-      this.cdr.markForCheck();
-    });
+    this.runInZoneHelper(() => {});
 
     try {
-      const TC = this.getTC();
-      if (!TC?.getProjectionData) {
+      if (!this.isTCPropertyRegistered('getProjectionData')) {
         throw new Error('TC.getProjectionData not available');
       }
 
-      const result = await TC.getProjectionData({ crs: `EPSG:${this.epsgCode}` });
+      const TC = this.tcNamespaceService.getTC()!;
+      const result = await TC.getProjectionData!({ crs: `EPSG:${this.epsgCode}` });
 
       // Async mode returns wrapped EPSG API format: { status, number_result, results: [...] }
       if (result && typeof result === 'object' && 'results' in result && Array.isArray(result.results) && result.results.length > 0) {
@@ -306,19 +217,18 @@ export class ProjectionDataCurrentComponent
       this.logger.error('Async test failed', error);
     } finally {
       this.isLoading = false;
-      this.ngZone.run(() => {
-        this.cdr.markForCheck();
-      });
+      this.runInZoneHelper(() => {});
       this.updateCachedCodes();
     }
   }
 
   updateCachedCodes(showNotification: boolean = false): void {
     const previousCount = this.cachedCodes.length;
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     // The cache is now accessible via TC.projectionDataCache (exposed through globalThis)
-    if (TC?.projectionDataCache) {
-      this.cachedCodes = Object.keys(TC.projectionDataCache).sort();
+    const cache = TC?.['projectionDataCache'] as Record<string, ProjectionData> | undefined;
+    if (cache) {
+      this.cachedCodes = Object.keys(cache).sort();
     } else {
       this.cachedCodes = [];
     }
@@ -343,63 +253,8 @@ export class ProjectionDataCurrentComponent
       this.logger.info(message);
     }
 
-    this.ngZone.run(() => {
-      this.cdr.markForCheck();
-    });
+    this.runInZoneHelper(() => {});
   }
 
-  /**
-   * Fix CSS class mismatch in Coordinates control dialog.
-   * The ProjectionSelector uses 'tc-ctl-projs-cur-crs-name' but Coordinates dialog
-   * template uses 'tc-ctl-coords-cur-crs-name'. This patch fixes the selector.
-   */
-  private fixCoordinatesDialogCssClasses(): void {
-    if (!this.map) {
-      return;
-    }
-
-    const TC = this.getTC();
-    const tcControl = TC?.['control'] as { Coordinates?: unknown } | undefined;
-    if (!TC || !tcControl?.['Coordinates']) {
-      return;
-    }
-
-    // Get the Coordinates control instance
-    const mapAny = this.map as { [key: string]: unknown };
-    const getControlsByClass = mapAny['getControlsByClass'] as ((className: string) => unknown[]) | undefined;
-    if (!getControlsByClass) {
-      return;
-    }
-
-    const coordsControls = getControlsByClass('TC.control.Coordinates');
-    if (!coordsControls || coordsControls.length === 0) {
-      return;
-    }
-
-    const coordsControl = coordsControls[0] as {
-      _cssClasses?: {
-        CURRENT_CRS_NAME?: string;
-        CURRENT_CRS_CODE?: string;
-        [key: string]: string | undefined;
-      };
-      showProjectionChangeDialog?: (options?: unknown) => void;
-    };
-
-    // Patch _cssClasses to use correct class names for Coordinates dialog
-    if (coordsControl._cssClasses) {
-      const originalCssClasses = { ...coordsControl._cssClasses };
-
-      // Update CSS classes to match Coordinates dialog template
-      coordsControl._cssClasses.CURRENT_CRS_NAME = 'tc-ctl-coords-cur-crs-name';
-      coordsControl._cssClasses.CURRENT_CRS_CODE = 'tc-ctl-coords-cur-crs-code';
-      coordsControl._cssClasses['CRS_DIALOG'] = 'tc-ctl-coords-crs-dialog';
-      coordsControl._cssClasses['CRS_LIST'] = 'tc-ctl-coords-crs-list';
-
-      this.logger.warn('Fixed CSS classes for Coordinates control dialog', {
-        original: originalCssClasses,
-        patched: coordsControl._cssClasses
-      });
-    }
-  }
 }
 

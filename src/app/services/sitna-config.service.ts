@@ -34,7 +34,16 @@ export class SitnaConfigService {
     }
 
     const SITNA = window.SITNA;
+    // Merge default options with provided options
     const mapOptions = { ...this.defaultMapOptions, ...options };
+
+    // Ensure workLayers is explicitly set to prevent inheritance from defaults or SITNA.Cfg
+    // If options doesn't specify workLayers, explicitly set to empty array
+    // This prevents scenarios from inheriting workLayers they didn't define
+    if (options?.workLayers === undefined) {
+      mapOptions.workLayers = [];
+    }
+
     return new SITNA.Map(containerId, mapOptions);
   }
 
@@ -194,8 +203,13 @@ export class SitnaConfigService {
     if (config['initialExtent'] !== undefined) {
       mapOptions.initialExtent = config['initialExtent'] as number[];
     }
+    // Explicitly set workLayers - if not in config, set to empty array to prevent inheritance
+    // This ensures scenarios only get workLayers they explicitly define
     if (config['workLayers'] !== undefined) {
       mapOptions.workLayers = config['workLayers'] as MapOptions['workLayers'];
+    } else {
+      // Explicitly set to empty array to prevent inheritance from defaultMapOptions
+      mapOptions.workLayers = [];
     }
 
     return mapOptions;
@@ -203,12 +217,15 @@ export class SitnaConfigService {
 
   /**
    * Convert SitnaConfig controls to MapControlsOptions
+   * Most controls are passed through directly to SITNA, which handles auto-instantiation.
+   * Only layerCatalog needs special transformation (layer type string to SITNA constant).
    */
   private convertControlsConfig(controls: SitnaControls): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     const SITNA = window.SITNA;
+    const controlsRecord = controls as Record<string, unknown>;
 
-    // Handle layerCatalog: can be false (disabled) or an object (enabled with config)
+    // Handle layerCatalog: needs special transformation for layer types
     if (controls.layerCatalog === false) {
       result['layerCatalog'] = false;
     } else if (controls.layerCatalog !== undefined && typeof controls.layerCatalog === 'object') {
@@ -263,46 +280,20 @@ export class SitnaConfigService {
       }
     }
 
-    // Handle workLayerManager
+    // Handle workLayerManager: set default div if not provided
     if (controls.workLayerManager !== undefined && typeof controls.workLayerManager === 'object') {
       result['workLayerManager'] = {
         div: controls.workLayerManager.div || 'workLayerManager',
       };
     }
 
-    if (controls.overviewMap !== undefined) {
-      result['overviewMap'] = controls.overviewMap;
-    }
-
-    // Handle basemapSelector: can be false (disabled) or an object (enabled with config)
-    const controlsRecord = controls as Record<string, unknown>;
-    if (controlsRecord['basemapSelector'] === false) {
-      result['basemapSelector'] = false;
-    } else if (controlsRecord['basemapSelector'] !== undefined && typeof controlsRecord['basemapSelector'] === 'object') {
-      result['basemapSelector'] = controlsRecord['basemapSelector'];
-    }
-
-    // Handle basemapSelectorSilme: can be false (disabled) or an object (enabled with config)
-    if (controlsRecord['basemapSelectorSilme'] === false) {
-      result['basemapSelectorSilme'] = false;
-    } else if (controlsRecord['basemapSelectorSilme'] !== undefined && typeof controlsRecord['basemapSelectorSilme'] === 'object') {
-      result['basemapSelectorSilme'] = controlsRecord['basemapSelectorSilme'];
-    }
-
-    // Handle offlineMapMaker: can be false (disabled) or an object (enabled with config)
-    if (controlsRecord['offlineMapMaker'] === false) {
-      result['offlineMapMaker'] = false;
-    } else if (controlsRecord['offlineMapMaker'] !== undefined && typeof controlsRecord['offlineMapMaker'] === 'object') {
-      result['offlineMapMaker'] = controlsRecord['offlineMapMaker'];
-    }
-
-    // Handle featureInfoSilme: can be false (disabled) or true (enabled) or an object (enabled with config)
-    if (controlsRecord['featureInfoSilme'] === false) {
-      result['featureInfoSilme'] = false;
-    } else if (controlsRecord['featureInfoSilme'] === true) {
-      result['featureInfoSilme'] = true;
-    } else if (controlsRecord['featureInfoSilme'] !== undefined && typeof controlsRecord['featureInfoSilme'] === 'object') {
-      result['featureInfoSilme'] = controlsRecord['featureInfoSilme'];
+    // All other controls are passed through directly - SITNA handles auto-instantiation
+    // This includes: overviewMap, basemapSelector, basemapSelectorSilme, offlineMapMaker,
+    // featureInfoSilme, helloWorld, and any other custom controls
+    for (const key in controlsRecord) {
+      if (key !== 'layerCatalog' && key !== 'workLayerManager' && controlsRecord[key] !== undefined) {
+        result[key] = controlsRecord[key];
+      }
     }
 
     return result;

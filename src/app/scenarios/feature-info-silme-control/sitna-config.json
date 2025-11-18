@@ -5,6 +5,7 @@
   "baseLayers": ["ign-base", "ign-mtn", "ign-pnoa"],
   "defaultBaseLayer": "ign-base",
   "controls": {
+    "featureInfo": false,
     "featureInfoSilme": true
   },
   "workLayers": [

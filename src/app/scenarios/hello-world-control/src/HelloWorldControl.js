@@ -1,5 +1,9 @@
 (function () {
-  if (window.HelloWorldControl) {
+  // Ensure TC.control namespace exists
+  TC.control = TC.control || {};
+
+  // Check if already registered
+  if (TC.control.HelloWorld) {
     return;
   }
 
@@ -69,8 +73,13 @@
     }
   }
 
+  // Register in TC.control namespace for SITNA auto-instantiation
+  TC.control.HelloWorld = HelloWorldControl;
+
+  // Also register on window for backward compatibility
   window.HelloWorldControl = HelloWorldControl;
 
+  // Register as custom element (optional, for web component usage)
   if (!customElements.get('hello-world-control')) {
     customElements.define('hello-world-control', HelloWorldControl);
   }

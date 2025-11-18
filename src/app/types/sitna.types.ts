@@ -28,6 +28,7 @@ export interface SitnaControls {
   workLayerManager?: SitnaWorkLayerManager;
   overviewMap?: boolean | unknown;
   featureInfoSilme?: boolean | unknown;
+  helloWorld?: { div?: string } | false;
   [key: string]: unknown;
 }
 

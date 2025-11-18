@@ -1,22 +1,11 @@
 import {
   Component,
-  type OnInit,
-  type OnDestroy,
   ChangeDetectionStrategy,
-  afterNextRender,
-  inject,
-  ChangeDetectorRef,
-  NgZone,
 } from '@angular/core';
-import type SitnaMap from 'api-sitna';
-import { SitnaConfigService } from '../../services/sitna-config.service';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../types/sitna.types';
-import { LoggingService } from '../../services/logging.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
+import { BaseScenarioComponent } from '../base-scenario.component';
 import { createMeldPatchManager } from '../../utils/sitna-meld-patch';
-import type { TCNamespace } from '../../../types/api-sitna';
 
 interface MeldAdvice {
   remove: () => void;
@@ -65,101 +54,71 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   styleUrls: ['./basemap-selector-silme-control.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BasemapSelectorSilmeControlComponent
-  implements OnInit, OnDestroy
-{
-  readonly metadata = SCENARIO_METADATA;
-  map: SitnaMap | null = null;
-  private readonly configService = inject(SitnaConfigService);
-  private readonly logger = inject(LoggingService);
-  private readonly errorHandler = inject(ErrorHandlingService);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly ngZone = inject(NgZone);
+export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent {
   private patchManager = createMeldPatchManager();
 
   constructor() {
-    afterNextRender(() => {
-      this.loadControl()
-        .then(() => {
-          return this.applyPatchWithRetry();
-        })
-        .then(() => {
-          this.initializeMap();
-        })
-        .catch((error) => {
-          this.logger.error(
-            'Failed to load control or apply patch, initializing map anyway',
-            error
-          );
-          this.initializeMap();
-        });
+    super();
+    this.metadata = SCENARIO_METADATA;
+    this.initializeMapWithPreload({
+      preloadSteps: [
+        () => this.ensureScriptsLoaded({
+          checkLoaded: () => this.isTCPropertyRegistered('apiLocation'),
+          preLoad: 'tc',
+          loadScripts: [
+            () => {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              require('./src/SilmeUtils.js');
+            },
+            () => {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              require('./src/controls/BasemapSelectorSilme.js');
+            },
+          ],
+          controlName: 'BasemapSelectorSilme',
+        }),
+        () => this.applyPatchWithRetry(),
+      ],
+      scenarioConfig: scenarioConfigJson as Parameters<typeof this.scenarioMapService.initializeScenarioMap>[0],
+      mapOptions: {
+        successMessage: 'Basemap Selector Silme Control: Map loaded successfully',
+        onLoaded: () => {
+          // Set global silmeMap variable for use in patches and SilmeSecondBaseLayer.js
+          // Access the internal map wrap through TC.Map.get after map is loaded
+          const TC = this.tcNamespaceService.getTC();
+          const containerId = this.getContainerId();
+          const mapElement = document.querySelector(`#${containerId}`);
+          if (TC && mapElement && (window as { silmeMap?: unknown }).silmeMap === undefined) {
+            try {
+              const TCWithMap = TC as { Map?: { get: (element: Element | null) => unknown } };
+              const mapInstance = TCWithMap.Map?.get(mapElement);
+              if (mapInstance) {
+                (window as { silmeMap?: unknown }).silmeMap = mapInstance;
+                this.logger.warn('Set global silmeMap variable');
+              }
+            } catch (error) {
+              this.logger.warn('Could not set silmeMap, patches may not work correctly', error);
+            }
+          }
+          this.runInZoneHelper(() => {});
+        },
+      },
     });
   }
 
-  ngOnInit(): void {
-    // Map initialization happens in afterNextRender callback
-  }
-
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
     this.patchManager.restoreAll();
-    this.destroyMap();
+    super.ngOnDestroy();
   }
 
-  private getTC(): TCNamespace | undefined {
-    return window.TC || (globalThis as { TC?: TCNamespace }).TC;
+  private async applyPatchWithRetry(): Promise<void> {
+    const TC = await this.tcNamespaceService.waitForTC();
+    await this.tcNamespaceService.waitForTCProperty('wrap');
+    await this.applyPatch(TC);
   }
 
-  private async loadControl(): Promise<void> {
-    // Wait for TC to be available (needed for TC.syncLoadJS in the controls)
-    const maxRetries = 50;
-    const delayMs = 100;
-
-    for (let i = 0; i < maxRetries; i++) {
-      const TC = this.getTC();
-      if (TC && TC['apiLocation']) {
-        try {
-          // Load SilmeUtils.js first (defines utility functions including getLastBaseMapIndex)
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require('./src/SilmeUtils.js');
-          this.logger.warn('Loaded SilmeUtils.js');
-
-          // Load the BasemapSelectorSilme control
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          require('./src/controls/BasemapSelectorSilme.js');
-          this.logger.warn('Loaded BasemapSelectorSilme control');
-          return;
-        } catch (error) {
-          this.logger.error('Failed to load controls', error);
-          throw error;
-        }
-      }
-      if (i < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-    throw new Error('TC not available for loading controls');
-  }
-
-  private async applyPatchWithRetry(
-    maxRetries: number = 50,
-    delayMs: number = 100
-  ): Promise<void> {
-    for (let i = 0; i < maxRetries; i++) {
-      const TC = this.getTC();
-      if (TC?.['wrap']) {
-        await this.applyPatch();
-        return;
-      }
-      if (i < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-    throw new Error('TC.wrap not available after retries');
-  }
-
-  private async applyPatch(): Promise<void> {
-    const TC = this.getTC();
-    if (!TC?.['wrap']) {
+  private async applyPatch(TC: NonNullable<ReturnType<typeof this.tcNamespaceService.getTC>>): Promise<void> {
+    if (!this.isTCPropertyRegistered('wrap')) {
       this.logger.error('TC.wrap not available for patch');
       return;
     }
@@ -306,60 +265,8 @@ export class BasemapSelectorSilmeControlComponent
     }
   }
 
-  private initializeMap(): void {
-    // Load scenario-specific config directly
-    const scenarioConfig: SitnaConfig = scenarioConfigJson as SitnaConfig;
-
-    // Convert config to map options (doesn't modify global state)
-    const scenarioOptions =
-      this.configService.applyConfigToMapOptions(scenarioConfig);
-
-    // Initialize map with controls
-    this.map = this.configService.initializeMap(
-      'mapa-basemap-selector-silme-control',
-      scenarioOptions
-    );
-
-    if (this.map !== null && this.map !== undefined) {
-      this.map
-        .loaded()
-        .then(() => {
-          // Set global silmeMap variable for use in patches and SilmeSecondBaseLayer.js
-          // Access the internal map wrap through TC.Map.get after map is loaded
-          const TC = this.getTC();
-          const mapElement = document.querySelector('#mapa-basemap-selector-silme-control');
-          if (TC && mapElement && (window as { silmeMap?: unknown }).silmeMap === undefined) {
-            try {
-              const TCWithMap = TC as { Map?: { get: (element: Element | null) => unknown } };
-              const mapInstance = TCWithMap.Map?.get(mapElement);
-              if (mapInstance) {
-                (window as { silmeMap?: unknown }).silmeMap = mapInstance;
-                this.logger.warn('Set global silmeMap variable');
-              }
-            } catch (error) {
-              this.logger.warn('Could not set silmeMap, patches may not work correctly', error);
-            }
-          }
-
-          this.ngZone.run(() => {
-            this.cdr.markForCheck();
-          });
-          this.logger.warn(
-            'Basemap Selector Silme Control: Map loaded successfully',
-            this.map
-          );
-        })
-        .catch((error: unknown) => {
-          this.errorHandler.handleError(
-            error,
-            'BasemapSelectorSilmeControlComponent.initializeMap'
-          );
-        });
-    }
-  }
-
-  private destroyMap(): void {
-    this.map = null;
+  protected initializeMap(): void {
+    // Map initialization is handled by initializeMapWithPreload in constructor
   }
 }
 

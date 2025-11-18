@@ -7,6 +7,10 @@ if (!TC.control.FeatureInfo) {
 // =============================================================================
 // Constructor
 // =============================================================================
+// IMPORTANT: FeatureInfoSilme extends TC.control.FeatureInfo and uses the same
+// CSS class (tc-ctl-finfo). When using FeatureInfoSilme, the standard FeatureInfo
+// control MUST be disabled in the map configuration (featureInfo: false) to
+// avoid conflicts. Both controls cannot be active simultaneously.
 
 TC.control.FeatureInfoSilme = function () {
   const _ctl = this;

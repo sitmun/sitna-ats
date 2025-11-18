@@ -4,17 +4,12 @@ import {
   type OnDestroy,
   afterNextRender,
   inject,
-  ChangeDetectorRef,
-  NgZone,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import type SitnaMap from 'api-sitna';
-import { SitnaConfigService } from '../../services/sitna-config.service';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../types/sitna.types';
-import { LoggingService } from '../../services/logging.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 import type { ScenarioMetadata } from '../../types/scenario.types';
+import { BaseScenarioComponent } from '../base-scenario.component';
 import {
   patchFunction,
   createPatchManager,
@@ -59,10 +54,7 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   templateUrl: './proxification-logging.component.html',
   styleUrls: ['./proxification-logging.component.scss'],
 })
-export class ProxificationLoggingComponent
-  implements OnInit, OnDestroy
-{
-  readonly metadata = SCENARIO_METADATA;
+export class ProxificationLoggingComponent extends BaseScenarioComponent {
 
   // ============================================================================
   // Constants
@@ -118,8 +110,6 @@ export class ProxificationLoggingComponent
   // ============================================================================
   // Public Properties
   // ============================================================================
-
-  map: SitnaMap | null = null;
   logs: ProxificationLogEntry[] = [];
   filteredLogs: ProxificationLogEntry[] = [];
   filterMethod: string = 'all';
@@ -149,11 +139,6 @@ export class ProxificationLoggingComponent
   // Private Properties
   // ============================================================================
 
-  private readonly configService = inject(SitnaConfigService);
-  private readonly logger = inject(LoggingService);
-  private readonly errorHandler = inject(ErrorHandlingService);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly ngZone = inject(NgZone);
   private readonly snackBar = inject(MatSnackBar);
   private patchManager: PatchManager = createPatchManager();
   private instanceCounter = 0;
@@ -174,7 +159,7 @@ export class ProxificationLoggingComponent
    * @returns TC namespace if available, undefined otherwise
    */
   private getTC(): TCNamespace | undefined {
-    return (window as { TC?: TCNamespace }).TC || (globalThis as { TC?: TCNamespace }).TC;
+    return this.tcNamespaceService.getTC();
   }
 
   /**
@@ -547,23 +532,26 @@ export class ProxificationLoggingComponent
   // ============================================================================
 
   constructor() {
-    afterNextRender(() => {
-      // Setup patching first, then initialize map after patching is confirmed
-      this.setupProxificationPatching().then(() => {
-        this.initializeMap();
-      }).catch((error) => {
-        this.logger.error('Failed to setup proxification patching', error);
-        // Still try to initialize map even if patching fails
-        this.initializeMap();
-      });
+    super();
+    this.metadata = SCENARIO_METADATA;
+    this.initializeMapWithPreload({
+      preloadSteps: [
+        () => this.setupProxificationPatching(),
+      ],
+      scenarioConfig: scenarioConfigJson as Parameters<typeof this.scenarioMapService.initializeScenarioMap>[0],
+      mapOptions: {
+        successMessage: 'Proxification Logging: Map loaded successfully',
+        onLoaded: () => {
+          this.runInZoneHelper(() => {
+            this.isMapLoading = false;
+          });
+        },
+      },
+      continueOnError: true, // Always initialize map even if patching fails
     });
   }
 
-  ngOnInit(): void {
-    // Patching and map initialization happen in afterNextRender callback
-  }
-
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
     // Clean up all active intervals
     this.activeIntervals.forEach((interval) => clearInterval(interval));
     this.activeIntervals.clear();
@@ -572,7 +560,7 @@ export class ProxificationLoggingComponent
     this.patchManager.restoreAll();
 
     // Destroy map
-    this.destroyMap();
+    super.ngOnDestroy();
   }
 
   /**
@@ -1163,7 +1151,7 @@ export class ProxificationLoggingComponent
    */
   private addLog(entry: Omit<ProxificationLogEntry, 'id'>): void {
     // Ensure we're in Angular zone to trigger change detection
-    this.ngZone.run(() => {
+    this.runInZoneHelper(() => {
       const logEntry: ProxificationLogEntry = {
         ...entry,
         id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
@@ -1173,8 +1161,6 @@ export class ProxificationLoggingComponent
       const count = this.statistics.methodCounts.get(entry.method) || 0;
       this.statistics.methodCounts.set(entry.method, count + 1);
       this.applyFilters();
-      // Trigger change detection to update the UI
-      this.cdr.markForCheck();
     });
   }
 
@@ -1185,56 +1171,14 @@ export class ProxificationLoggingComponent
   /**
    * Initialize the SITNA map with scenario-specific configuration.
    */
-  private initializeMap(): void {
-    // Load scenario-specific config directly
-    const scenarioConfig: SitnaConfig = scenarioConfigJson as SitnaConfig;
-
-    // Convert config to map options (doesn't modify global state)
-    const scenarioOptions =
-      this.configService.applyConfigToMapOptions(scenarioConfig);
-
-    // Initialize map - this should trigger proxification calls
-    this.map = this.configService.initializeMap(
-      'mapa-proxification-logging',
-      scenarioOptions
-    );
-
-    if (this.map !== null && this.map !== undefined) {
-      this.map
-        .loaded()
-        .then(() => {
-          this.ngZone.run(() => {
-            this.isMapLoading = false;
-            this.cdr.markForCheck();
-          });
-          this.logger.warn(
-            'Proxification Logging: Map loaded successfully',
-            this.map
-          );
-        })
-        .catch((error: unknown) => {
-          this.ngZone.run(() => {
-            this.isMapLoading = false;
-            this.cdr.markForCheck();
-          });
-          this.errorHandler.handleError(
-            error,
-            'ProxificationLoggingComponent.initializeMap'
-          );
-        });
-    } else {
-      this.ngZone.run(() => {
+  protected initializeMap(): void {
+    // Map initialization is handled by initializeMapWithPreload in constructor
+    // If map initialization fails, update loading state
+    if (this.map === null) {
+      this.runInZoneHelper(() => {
         this.isMapLoading = false;
-        this.cdr.markForCheck();
       });
     }
-  }
-
-  /**
-   * Destroy the map instance and clean up resources.
-   */
-  private destroyMap(): void {
-    this.map = null;
   }
 
   // ============================================================================
@@ -1246,7 +1190,7 @@ export class ProxificationLoggingComponent
    */
   clearLogs(): void {
     const logCount = this.logs.length;
-    this.ngZone.run(() => {
+    this.runInZoneHelper(() => {
       this.logs = [];
       this.statistics = {
         totalCalls: 0,
@@ -1255,7 +1199,6 @@ export class ProxificationLoggingComponent
         instanceCount: this.statistics.instanceCount,
       };
       this.applyFilters();
-      this.cdr.markForCheck();
     });
 
     // Show feedback
@@ -1338,7 +1281,7 @@ export class ProxificationLoggingComponent
       const log = this.logs[logIndex];
       const logCopy = { ...log }; // Create a copy for undo
 
-      this.ngZone.run(() => {
+      this.runInZoneHelper(() => {
         // Update statistics
         this.statistics.totalCalls--;
         const count = this.statistics.methodCounts.get(log.method) || 0;
@@ -1351,7 +1294,6 @@ export class ProxificationLoggingComponent
         // Remove the log
         this.logs.splice(logIndex, 1);
         this.applyFilters();
-        this.cdr.markForCheck();
       });
 
       // Show feedback with undo option
@@ -1369,9 +1311,7 @@ export class ProxificationLoggingComponent
           this.statistics.errorCount++;
         }
         this.applyFilters();
-        this.ngZone.run(() => {
-          this.cdr.markForCheck();
-        });
+        this.runInZoneHelper(() => {});
       });
     }
   }

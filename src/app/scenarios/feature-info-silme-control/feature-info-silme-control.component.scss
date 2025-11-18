@@ -13,3 +13,24 @@
   overflow: hidden;
 }
 
+/* Visual cue to verify FeatureInfoSilme custom template is being used */
+.tc-ctl-finfo-silme-custom {
+  position: relative;
+
+  &::before {
+    content: '✓ SILME';
+    position: absolute;
+    top: -20px;
+    right: 0;
+    background: #4caf50;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+}
+

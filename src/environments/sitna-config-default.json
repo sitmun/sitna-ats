@@ -3,6 +3,7 @@
   "crs": "EPSG:25830",
   "baseLayers": ["ign-base"],
   "defaultBaseLayer": "ign-base",
-  "initialExtent": [541084.221, 4640788.225, 685574.4632, 4796618.764]
+  "initialExtent": [541084.221, 4640788.225, 685574.4632, 4796618.764],
+  "workLayers": []
 }
 

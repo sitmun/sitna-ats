@@ -2,8 +2,8 @@
  * Type definitions for api-sitna module
  */
 
-import type { TCNamespace } from './api-sitna/TC/TCNamespace';
-export type { TCNamespace };
+import type { TCNamespace, ProjectionData } from './api-sitna/TC/TCNamespace';
+export type { TCNamespace, ProjectionData };
 
 /**
  * Main api-sitna module declaration

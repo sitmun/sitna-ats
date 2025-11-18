@@ -94,6 +94,62 @@ This scenario demonstrates how to create a custom SITNA control in **api-sitna v
 - Append only the control-specific selectors (e.g., `.tc-ctl-hello-world__*`).
 - Document this pattern so future scenarios avoid unnecessary duplication.
 
+### 7. Auto-Instantiation via TC.control Registration
+
+**Key Insight:** Controls registered in the `TC.control` namespace can be auto-instantiated by SITNA from the standard `"controls"` configuration.
+
+**How Auto-Instantiation Works:**
+
+1. **Registration**: Control must be registered as `TC.control.ControlName` (e.g., `TC.control.HelloWorld`)
+2. **Config Format**: Use standard SITNA controls format: `"controls": { "controlName": {...} }`
+3. **Load Timing**: Control script must be loaded before map initialization (`loadBeforeMap: true`)
+4. **SITNA Mapping**: SITNA maps config key `"helloWorld"` → `TC.control.HelloWorld` during map initialization
+
+**Example - HelloWorldControl:**
+
+```javascript
+// Register in TC.control namespace
+TC.control.HelloWorld = HelloWorldControl;
+```
+
+```json
+// sitna-config.json
+{
+  "controls": {
+    "helloWorld": {
+      "div": "tc-slot-hello-world"
+    }
+  }
+}
+```
+
+```typescript
+// Component - no manual addControl() needed!
+this.initializeMapWithControl({
+  checkLoaded: () => this.isTCControlRegistered('HelloWorld'),
+  loadBeforeMap: true, // Required for auto-instantiation
+  addControl: (map) => {
+    // Control is auto-instantiated by SITNA from config
+    // No manual map.addControl() needed!
+  }
+});
+```
+
+**Comparison:**
+
+| Aspect | Manual Addition (Old) | Auto-Instantiation (Current) |
+|--------|----------------------|------------------------------|
+| **Registration** | `window.HelloWorldControl` only | `TC.control.HelloWorld` |
+| **Config Format** | Custom property: `"helloWorldControl": {...}` | Standard: `"controls": { "helloWorld": {...} }` |
+| **Load Timing** | `loadBeforeMap: false` | `loadBeforeMap: true` |
+| **Component Code** | Manual `map.addControl(instance)` | No-op logger (SITNA handles it) |
+
+**Benefits of Auto-Instantiation:**
+- ✅ Consistent with standard SITNA control patterns
+- ✅ No manual instantiation code needed
+- ✅ Control configuration in one place (config file)
+- ✅ Works the same way as built-in SITNA controls
+
 ---
 
 ## Implementation Differences: 4.1 vs 4.8
