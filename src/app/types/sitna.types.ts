@@ -27,12 +27,15 @@ export interface SitnaControls {
   layerCatalog?: SitnaLayerCatalog | false;
   workLayerManager?: SitnaWorkLayerManager;
   overviewMap?: boolean | unknown;
+  featureInfoSilme?: boolean | unknown;
+  [key: string]: unknown;
 }
 
 export interface SitnaConfig {
   layout?: string;
   controls?: SitnaControls;
   proxy?: string;
+  workLayers?: SitnaLayer[];
   [key: string]: unknown;
 }
 

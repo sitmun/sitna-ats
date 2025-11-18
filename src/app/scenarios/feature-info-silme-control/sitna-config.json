@@ -1,0 +1,20 @@
+{
+  "layout": "js/api-sitna/layout/responsive",
+  "crs": "EPSG:25830",
+  "initialExtent": [541084.221, 4640788.225, 685574.463, 4796618.764],
+  "baseLayers": ["ign-base", "ign-mtn", "ign-pnoa"],
+  "defaultBaseLayer": "ign-base",
+  "controls": {
+    "featureInfoSilme": true
+  },
+  "workLayers": [
+    {
+      "id": "terremotos",
+      "title": "Terremotos últimos 365 días",
+      "type": "WMS",
+      "url": "https://www.ign.es/wms-inspire/geofisica",
+      "layerNames": ["Ultimos365dias"]
+    }
+  ]
+}
+

@@ -194,6 +194,9 @@ export class SitnaConfigService {
     if (config['initialExtent'] !== undefined) {
       mapOptions.initialExtent = config['initialExtent'] as number[];
     }
+    if (config['workLayers'] !== undefined) {
+      mapOptions.workLayers = config['workLayers'] as MapOptions['workLayers'];
+    }
 
     return mapOptions;
   }
@@ -291,6 +294,15 @@ export class SitnaConfigService {
       result['offlineMapMaker'] = false;
     } else if (controlsRecord['offlineMapMaker'] !== undefined && typeof controlsRecord['offlineMapMaker'] === 'object') {
       result['offlineMapMaker'] = controlsRecord['offlineMapMaker'];
+    }
+
+    // Handle featureInfoSilme: can be false (disabled) or true (enabled) or an object (enabled with config)
+    if (controlsRecord['featureInfoSilme'] === false) {
+      result['featureInfoSilme'] = false;
+    } else if (controlsRecord['featureInfoSilme'] === true) {
+      result['featureInfoSilme'] = true;
+    } else if (controlsRecord['featureInfoSilme'] !== undefined && typeof controlsRecord['featureInfoSilme'] === 'object') {
+      result['featureInfoSilme'] = controlsRecord['featureInfoSilme'];
     }
 
     return result;

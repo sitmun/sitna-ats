@@ -30,6 +30,10 @@ import {
   HelloWorldControlComponent,
   SCENARIO_METADATA as HelloWorldControlMetadata,
 } from './hello-world-control/hello-world-control.component';
+import {
+  FeatureInfoSilmeControlComponent,
+  SCENARIO_METADATA as FeatureInfoSilmeControlMetadata,
+} from './feature-info-silme-control/feature-info-silme-control.component';
 
 /**
  * Register all scenarios with the registry service
@@ -74,6 +78,11 @@ export function registerScenarios(
       componentClass: HelloWorldControlComponent,
       selector: 'app-hello-world-control',
     },
+    {
+      ...FeatureInfoSilmeControlMetadata,
+      componentClass: FeatureInfoSilmeControlComponent,
+      selector: 'app-feature-info-silme-control',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -95,6 +104,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     BasemapSelectorControlComponent,
     BasemapSelectorSilmeControlComponent,
     HelloWorldControlComponent,
+    FeatureInfoSilmeControlComponent,
   ];
 }
 
