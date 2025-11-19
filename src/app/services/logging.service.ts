@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
+import type { LogLevel } from '../../types/service.types';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+// Re-export type for backward compatibility
+export type { LogLevel } from '../../types/service.types';
 
 /**
  * Service for application-wide logging with test environment detection.

@@ -21,7 +21,20 @@ export interface TCNamespace {
   /**
    * Base URL for TC API resources
    */
-  apiLocation?: string;
+  apiLocation: string;
+  /**
+   * Synchronously load a JavaScript file from a URL.
+   * Used to load TC control scripts dynamically.
+   */
+  syncLoadJS: (url: string) => void;
+  /**
+   * Get a TC-wrapped map instance from a DOM element.
+   * Used to access the internal TC map instance after SITNA map initialization.
+   */
+  Map?: {
+    get?: (element: Element | null) => unknown;
+    [key: string]: unknown;
+  };
   tool?: {
     Proxification?: typeof Proxification;
     [key: string]: unknown;

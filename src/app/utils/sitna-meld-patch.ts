@@ -3,131 +3,31 @@
  * Uses meld library (version < 2.0.0) for AOP-style patching
  */
 
-interface MeldAdvice {
-  remove: () => void;
-}
-
-interface MeldJoinPoint {
-  target: unknown;
-  method: string;
-  args: unknown[];
-  proceed: () => unknown;
-  proceedApply: (args: unknown[]) => unknown;
-  proceedCount: number;
-  result?: unknown;
-  exception?: unknown;
-}
-
-interface Meld {
-  before: (
-    target: unknown,
-    method: string,
-    advice: (...args: unknown[]) => void
-  ) => MeldAdvice;
-  around: (
-    target: unknown,
-    method: string,
-    advice: (joinPoint: MeldJoinPoint) => unknown
-  ) => MeldAdvice;
-  remove: (advice: MeldAdvice) => void;
-}
+import type {
+  Meld,
+  MeldJoinPoint,
+  MethodPatchDefinition,
+  Logger,
+  MethodPatch,
+  SitnaMethodPatches,
+} from '../../types/meld.types';
+import type { SitnaPatchConfig } from '../../types/patch.types';
 
 // meld is a CommonJS module, so we use require with proper typing
 // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const meld = require('meld') as Meld;
 
-
-export interface SitnaPatchConfig {
-  enableLogging?: boolean;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  patchMethods?: string[];
-}
-
-/**
- * Patch SITNA map methods with logging using meld
- */
-export function patchSitnaMapLogging(
-  config: SitnaPatchConfig = {}
-): Array<() => void> {
-  const {
-    enableLogging = true,
-    logLevel = 'info',
-    patchMethods = ['loaded', 'addLayer', 'removeLayer'],
-  } = config;
-
-  if (!enableLogging || window.SITNA === undefined) {
-    return [];
-  }
-
-  const restores: Array<() => void> = [];
-  const SITNA = window.SITNA;
-
-  if (SITNA?.Map?.prototype === undefined) {
-    // Use console directly here as this is a utility function that may be called
-    // before Angular services are available
-    // eslint-disable-next-line no-console
-    console.warn('SITNA.Map not available for patching');
-    return [];
-  }
-
-  patchMethods.forEach((methodName) => {
-    const prototype = SITNA.Map.prototype as unknown as Record<string, unknown>;
-    if (typeof prototype[methodName] === 'function') {
-      const advice = meld.before(
-        SITNA.Map.prototype,
-        methodName,
-        function (this: unknown, ...args: unknown[]): void {
-          // Use console directly here as this is a utility function that may be called
-          // before Angular services are available. The logging service should be used
-          // in components and services instead.
-          // eslint-disable-next-line no-console
-          const logFn = console[logLevel] as (
-            message?: unknown,
-            ...optionalParams: unknown[]
-          ) => void;
-          logFn(`[SITNA] ${methodName} called with:`, args);
-        }
-      );
-      restores.push(() => meld.remove(advice));
-    }
-  });
-
-  return restores;
-}
-
-/**
- * Type for patching a specific method with typed signature
- */
-export type MethodPatch<T extends (...args: unknown[]) => unknown> = (
-  original: T,
-  ...args: Parameters<T>
-) => ReturnType<T>;
-
-/**
- * Type for method patches record
- *
- * Accepts functions where the first parameter (original) represents the original method.
- * This type intentionally uses unknown for flexibility while maintaining type safety.
- *
- * Usage pattern:
- * ```typescript
- * type LoadedMethod = (callback?: () => void) => Promise<void>;
- *
- * const patches: SitnaMethodPatches = {
- *   loaded: function(this: SitnaMap, original: LoadedMethod, callback?: () => void): Promise<void> {
- *     console.log('loaded called');
- *     return original.call(this, callback);
- *   }
- * };
- * ```
- */
-export type SitnaMethodPatches = {
-  [K in string]: (
-    this: unknown,
-    original: (...args: unknown[]) => unknown,
-    ...args: unknown[]
-  ) => unknown;
-};
+// Re-export types for convenience
+export type {
+  Meld,
+  MeldAdvice,
+  MeldJoinPoint,
+  MethodPatchDefinition,
+  Logger,
+  MethodPatch,
+  SitnaMethodPatches,
+} from '../../types/meld.types';
+export type { SitnaPatchConfig } from '../../types/patch.types';
 
 /**
  * Patch specific SITNA.Map methods with custom behavior using meld AOP library.
@@ -269,5 +169,119 @@ export function createMeldPatchManager(): {
       patches.length = 0;
     },
   };
+}
+
+/**
+ * Patch multiple methods with logging, timing, and promise handling using meld AOP.
+ *
+ * This is a generic utility that can patch any target object's methods, not just SITNA.Map.
+ * It provides automatic logging, performance timing, and promise handling for all patched methods.
+ *
+ * @param definitions - Array of method patch definitions (target, methodName, path)
+ * @param logger - Logger instance compatible with LoggingService
+ * @returns Array of restore functions to remove the patches
+ *
+ * @example
+ * ```typescript
+ * const methodsToPatch = [
+ *   {
+ *     target: TC.wrap.Map.prototype,
+ *     methodName: 'insertLayer',
+ *     path: 'TC.wrap.Map.prototype.insertLayer',
+ *   },
+ *   {
+ *     target: TC.control.BasemapSelector.prototype,
+ *     methodName: 'render',
+ *     path: 'TC.control.BasemapSelector.prototype.render',
+ *   },
+ * ];
+ *
+ * const restores = patchMethodsWithLogging(methodsToPatch, this.logger);
+ * this.patchManager.add(restores);
+ * ```
+ *
+ * @remarks
+ * - Validates that targets and methods exist before patching
+ * - Logs method calls with arguments
+ * - Measures and logs execution time
+ * - Handles promises automatically (logs resolution/rejection)
+ * - Logs errors with timing information
+ * - Returns empty array if all patches fail validation
+ */
+export function patchMethodsWithLogging(
+  definitions: MethodPatchDefinition[],
+  logger: Logger
+): Array<() => void> {
+  const restores: Array<() => void> = [];
+
+  definitions.forEach(({ target, methodName, path }) => {
+    // Validate target exists
+    if (!target) {
+      logger.warn(`Target not available for ${path}, skipping patch`);
+      return;
+    }
+
+    // Validate method exists
+    const descriptor = Object.getOwnPropertyDescriptor(target, methodName);
+    if (!descriptor || typeof descriptor.value !== 'function') {
+      logger.warn(`Method ${methodName} not found on ${path}, skipping patch`);
+      return;
+    }
+
+    try {
+      const advice = meld.around(
+        target,
+        methodName,
+        function (this: unknown, joinPoint: MeldJoinPoint): unknown {
+          const startTime = performance.now();
+          const methodArgs = joinPoint.args;
+
+          logger.warn(`[${path}] Called with args:`, methodArgs);
+
+          try {
+            const result = joinPoint.proceed();
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+
+            logger.warn(
+              `[${path}] Completed in ${duration.toFixed(2)}ms`,
+              result
+            );
+
+            // Handle promises
+            if (result instanceof Promise) {
+              return result
+                .then((resolved) => {
+                  logger.warn(`[${path}] Promise resolved:`, resolved);
+                  return resolved;
+                })
+                .catch((error) => {
+                  logger.error(`[${path}] Promise rejected:`, error);
+                  throw error;
+                });
+            }
+
+            return result;
+          } catch (error) {
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+
+            logger.error(
+              `[${path}] Failed after ${duration.toFixed(2)}ms:`,
+              error
+            );
+            throw error;
+          }
+        }
+      );
+
+      restores.push(() => meld.remove(advice));
+      logger.warn(`Applied AOP patch to ${path}`);
+    } catch (error) {
+      logger.error(`Failed to patch ${path}:`, error);
+    }
+  });
+
+  return restores;
 }
 

@@ -71,11 +71,6 @@ export class ScenarioSelectorComponent implements OnInit {
     this.applyFilters();
   }
 
-  onNameFilterChange(filter: string): void {
-    this.nameFilter = filter;
-    this.applyFilters();
-  }
-
   onTagToggle(tag: string): void {
     const index = this.selectedTags.indexOf(tag);
     if (index >= 0) {

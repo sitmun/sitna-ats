@@ -4,10 +4,7 @@ import { BasicMapInitializationComponent } from '../../src/app/scenarios/basic-m
 import { SitnaConfigService } from '../../src/app/services/sitna-config.service';
 import type { TestMetadata } from './shared/test-metadata.types';
 
-export const TEST_METADATA: TestMetadata = {
-  scenarioId: 'basic-map-initialization',
-  tags: ['map', 'initialization', 'basic'],
-};
+
 
 describe('BasicMapInitializationComponent', () => {
   let component: BasicMapInitializationComponent;

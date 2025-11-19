@@ -1,7 +1,7 @@
 import {inject, Injectable} from '@angular/core';
 import type SitnaMap from 'api-sitna';
 import type {MapOptions} from 'api-sitna/TC/Map';
-import type {SitnaConfig, SitnaControls} from '../types/sitna.types';
+import type {SitnaConfig, SitnaControls} from '../../types/sitna.types';
 import defaultMapOptionsJson from '../../environments/sitna-config-default.json';
 import {LoggingService} from './logging.service';
 

@@ -21,26 +21,6 @@ export class SitnaNamespaceService {
   }
 
   /**
-   * Get SITNA control namespace.
-   *
-   * @returns The SITNA control namespace, or undefined if not available
-   */
-  getSitnaControl(): unknown {
-    const SITNA = this.getSITNA();
-    if (!SITNA) {
-      return undefined;
-    }
-
-    // Ensure control namespace exists
-    if (!SITNA['control']) {
-      SITNA['control'] = {};
-    }
-
-    const controlNamespace = SITNA['control'] as { [key: string]: unknown };
-    return controlNamespace['Control'];
-  }
-
-  /**
    * Wait for SITNA.control.Control to become available with retry logic.
    * Also ensures the control namespace is properly set up.
    *

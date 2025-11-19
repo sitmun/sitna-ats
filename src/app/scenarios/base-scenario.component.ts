@@ -14,8 +14,9 @@ import { ErrorHandlingService } from '../services/error-handling.service';
 import { ScenarioMapService, type InitializeScenarioMapOptions } from '../services/scenario-map.service';
 import { TCNamespaceService } from '../services/tc-namespace.service';
 import { SitnaNamespaceService } from '../services/sitna-namespace.service';
+import type { TCNamespace } from '../../types/api-sitna';
 import { runInZone } from '../utils/zone-helpers';
-import type { SitnaConfig } from '../types/sitna.types';
+import type { SitnaConfig } from '../../types/sitna.types';
 import type { ScenarioMetadata } from '../types/scenario.types';
 
 /**
@@ -70,9 +71,12 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
 
   /**
    * Initialize the SITNA map with scenario-specific configuration.
-   * Must be implemented by subclasses.
+   * Default no-op implementation. Override in subclasses to provide custom initialization.
+   * Scenarios using `initializeMapWithPreload()` will have this method overridden at runtime.
    */
-  protected abstract initializeMap(): void;
+  protected initializeMap(): void {
+    // Default no-op - override in subclasses or use initializeMapWithPreload()
+  }
 
   /**
    * Destroy the map instance and clean up resources.
@@ -127,17 +131,6 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
     runInZone(this.ngZone, this.cdr, callback);
   }
 
-
-
-  /**
-   * Check if a custom element is registered.
-   *
-   * @param elementName - The name of the custom element (e.g., 'hello-world-control')
-   * @returns True if the custom element is registered, false otherwise
-   */
-  protected isCustomElementRegistered(elementName: string): boolean {
-    return typeof customElements.get(elementName) === 'function';
-  }
 
   /**
    * Check if a TC.control property exists.
@@ -428,6 +421,82 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
         }
       }
     })();
+  }
+
+  /**
+   * Wait for TC namespace and optionally wait for specific properties to become available.
+   * This helper standardizes the common pattern of waiting for TC and its properties.
+   *
+   * @param propertyPaths - Optional array of property paths to wait for (e.g., ['apiLocation', 'syncLoadJS'])
+   * @param maxRetries - Maximum number of retry attempts for each wait operation (default: 50)
+   * @param delayMs - Delay between retries in milliseconds (default: 100)
+   * @returns Promise that resolves with the TC namespace
+   * @throws Error if TC or any property is not available after retries
+   */
+  protected async waitForTCWithProperties(
+    propertyPaths?: string[],
+    maxRetries: number = 50,
+    delayMs: number = 100
+  ): Promise<TCNamespace> {
+    const TC = await this.tcNamespaceService.waitForTC(maxRetries, delayMs);
+
+    if (propertyPaths) {
+      for (const propertyPath of propertyPaths) {
+        await this.tcNamespaceService.waitForTCProperty(
+          propertyPath,
+          maxRetries,
+          delayMs
+        );
+      }
+    }
+
+    return TC;
+  }
+
+  /**
+   * Set a global variable with the TC-wrapped map instance from the current map container.
+   * This is useful for scenarios where patches or external scripts need access to the internal TC map instance.
+   *
+   * @param globalVarName - Name of the global variable to set (e.g., 'silmeMap')
+   * @param errorMessage - Optional custom error message if setting fails
+   * @returns True if the global variable was set successfully, false otherwise
+   */
+  protected setGlobalTCMapInstance(
+    globalVarName: string,
+    errorMessage?: string
+  ): boolean {
+    const TC = this.tcNamespaceService.getTC();
+    const mapElement = document.querySelector(`#${this.getContainerId()}`);
+
+    if (!TC || !mapElement) {
+      this.runInZoneHelper(() => {});
+      return false;
+    }
+
+    // Check if global variable is already set
+    const windowWithVar = window as unknown as { [key: string]: unknown };
+    if (windowWithVar[globalVarName] !== undefined) {
+      this.runInZoneHelper(() => {});
+      return false;
+    }
+
+    try {
+      const mapInstance = TC.Map?.get?.(mapElement);
+      if (mapInstance) {
+        windowWithVar[globalVarName] = mapInstance;
+        this.logger.warn(`Set global ${globalVarName} variable`);
+        this.runInZoneHelper(() => {});
+        return true;
+      }
+    } catch (error) {
+      const message =
+        errorMessage ||
+        `Could not set ${globalVarName}, patches may not work correctly`;
+      this.logger.warn(message, error);
+    }
+
+    this.runInZoneHelper(() => {});
+    return false;
   }
 
   /**

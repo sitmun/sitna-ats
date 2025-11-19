@@ -22,22 +22,3 @@ export function runInZone(
   });
 }
 
-/**
- * Run an async function in Angular zone with change detection.
- *
- * @param ngZone - Angular NgZone instance
- * @param cdr - ChangeDetectorRef instance
- * @param fn - Async function to execute
- * @returns Promise that resolves when the function completes
- */
-export async function runInZoneAsync(
-  ngZone: NgZone,
-  cdr: ChangeDetectorRef,
-  fn: () => Promise<void>
-): Promise<void> {
-  return ngZone.run(async () => {
-    await fn();
-    cdr.markForCheck();
-  });
-}
-

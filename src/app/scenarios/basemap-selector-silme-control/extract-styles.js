@@ -12,7 +12,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 // Template classes to search for
 const templateClasses = [
@@ -54,10 +53,6 @@ function extractStyles(cssFilePath) {
   const lines = cssContent.split('\n');
 
   const foundStyles = new Map();
-  const currentSelector = { value: null, startLine: null, endLine: null };
-  let inRule = false;
-  let braceCount = 0;
-  let currentRule = [];
 
   // Search for all template classes
   templateClasses.forEach(className => {

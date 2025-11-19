@@ -2,15 +2,10 @@
  * Safe monkey patching utilities for HTTP requests and API methods
  */
 
-export interface PatchRestore {
-  restore: () => void;
-}
+import type { PatchRestore, PatchManager } from '../../types/patch.types';
 
-export interface PatchManager {
-  add: (restore: () => void) => void;
-  restoreAll: () => void;
-  clear: () => void;
-}
+// Re-export types for backward compatibility
+export type { PatchRestore, PatchManager } from '../../types/patch.types';
 
 /**
  * Patch window.fetch with restore capability
@@ -24,22 +19,6 @@ export function patchFetch(
   return {
     restore: (): void => {
       window.fetch = originalFetch;
-    },
-  };
-}
-
-/**
- * Patch XMLHttpRequest if needed
- */
-export function patchXHR(
-  mockXHR: typeof XMLHttpRequest
-): PatchRestore {
-  const originalXHR = window.XMLHttpRequest;
-  window.XMLHttpRequest = mockXHR;
-
-  return {
-    restore: (): void => {
-      window.XMLHttpRequest = originalXHR;
     },
   };
 }

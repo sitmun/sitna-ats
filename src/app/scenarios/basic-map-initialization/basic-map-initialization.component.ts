@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../types/sitna.types';
+import type { SitnaConfig } from '../../../types/sitna.types';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
 
@@ -23,7 +23,7 @@ export class BasicMapInitializationComponent extends BaseScenarioComponent {
     this.metadata = SCENARIO_METADATA;
   }
 
-  protected initializeMap(): void {
+  protected override initializeMap(): void {
     const scenarioConfig: SitnaConfig = scenarioConfigJson as SitnaConfig;
 
     this.map = this.initializeScenarioMapHelper(scenarioConfig, {

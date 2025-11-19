@@ -11,8 +11,3 @@ export interface Finding {
   references?: string[]; // Optional links or references
 }
 
-export interface FindingsData {
-  findings: Finding[];
-  summary?: string; // Optional summary text
-}
-

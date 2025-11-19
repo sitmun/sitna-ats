@@ -1,12 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { LoggingService } from './logging.service';
+import type { AppError } from '../../types/service.types';
 
-export interface AppError {
-  message: string;
-  error?: unknown;
-  context?: string;
-  timestamp: Date;
-}
+// Re-export type for backward compatibility
+export type { AppError } from '../../types/service.types';
 
 /**
  * Centralized error handling service.

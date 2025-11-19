@@ -1171,7 +1171,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
   /**
    * Initialize the SITNA map with scenario-specific configuration.
    */
-  protected initializeMap(): void {
+  protected override initializeMap(): void {
     // Map initialization is handled by initializeMapWithPreload in constructor
     // If map initialization fails, update loading state
     if (this.map === null) {

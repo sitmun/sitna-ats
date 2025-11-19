@@ -22,20 +22,6 @@ export class ScenarioRegistryService {
   }
 
   /**
-   * Get scenario by route
-   */
-  getScenarioByRoute(route: string): ScenarioRegistration | undefined {
-    return this.scenarios.get(route);
-  }
-
-  /**
-   * Get scenarios filtered by tag
-   */
-  getScenariosByTag(tag: string): ScenarioRegistration[] {
-    return this.getAllScenarios().filter((s) => s.tags.includes(tag));
-  }
-
-  /**
    * Get scenarios filtered by name (case-insensitive partial match)
    */
   getScenariosByName(nameFilter: string): ScenarioRegistration[] {

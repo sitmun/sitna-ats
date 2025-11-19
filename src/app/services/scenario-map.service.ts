@@ -1,25 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import type SitnaMap from 'api-sitna';
 import type { MapOptions } from 'api-sitna/TC/Map';
-import type { SitnaConfig } from '../types/sitna.types';
+import type { SitnaConfig } from '../../types/sitna.types';
+import type { InitializeScenarioMapOptions } from '../../types/service.types';
 import { SitnaConfigService } from './sitna-config.service';
 import { LoggingService } from './logging.service';
 import { ErrorHandlingService } from './error-handling.service';
 
-export interface InitializeScenarioMapOptions {
-  /**
-   * Callback to execute after map is successfully loaded
-   */
-  onLoaded?: (map: SitnaMap) => void | Promise<void>;
-  /**
-   * Component name for error logging context
-   */
-  componentName?: string;
-  /**
-   * Success message to log after map loads
-   */
-  successMessage?: string;
-}
+// Re-export type for backward compatibility
+export type { InitializeScenarioMapOptions } from '../../types/service.types';
 
 /**
  * Service for scenario-specific map initialization.

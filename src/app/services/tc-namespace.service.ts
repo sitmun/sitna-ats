@@ -99,21 +99,5 @@ export class TCNamespaceService {
     }, obj as unknown);
   }
 
-  /**
-   * Check if TC namespace has specific properties available.
-   * Useful for checking if TC is ready for certain operations.
-   *
-   * @param properties - Array of property paths to check
-   * @returns true if all properties are available, false otherwise
-   */
-  hasTCProperties(properties: string[]): boolean {
-    const TC = this.getTC();
-    if (!TC) {
-      return false;
-    }
-    return properties.every(
-      (path) => this.getPropertyByPath(TC as Record<string, unknown>, path) !== undefined
-    );
-  }
 }
 

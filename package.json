@@ -15,7 +15,9 @@
     "serve:http": "http-server dist/sitna-sandbox -p 4200",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
-    "lint:html": "eslint \"src/**/*.html\""
+    "lint:html": "eslint \"src/**/*.html\"",
+    "sync:basemap-selector-silme-control": "node scripts/sync-github-files.js basemap-selector-silme-control",
+    "sync:basemap-selector-silme-control:dev": "node scripts/sync-github-files.js basemap-selector-silme-control dev"
   },
   "private": true,
   "dependencies": {

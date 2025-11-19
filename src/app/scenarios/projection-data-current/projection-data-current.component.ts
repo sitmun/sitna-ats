@@ -100,10 +100,6 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
     }
   }
 
-  protected initializeMap(): void {
-    // Map initialization is handled by initializeMapWithPreload in constructor
-  }
-
   testGetProjectionDataSync(): void {
     this.isLoading = true;
     this.testResult = null;

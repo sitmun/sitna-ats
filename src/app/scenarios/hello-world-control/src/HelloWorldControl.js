@@ -18,10 +18,6 @@
       this._handleButtonClick = this._handleButtonClick.bind(this);
     }
 
-    getClassName() {
-      return 'tc-ctl-hello-world';
-    }
-
     async loadTemplates() {
       if (this.template && this.template[this.CLASS]) {
         return;

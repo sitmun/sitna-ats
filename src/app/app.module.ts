@@ -44,9 +44,6 @@ function initializeRoutes(): Routes {
     register(reg: any): void {
       this.scenarios.set(reg.route, reg);
     }
-    getAllScenarios(): any[] {
-      return Array.from(this.scenarios.values());
-    }
   })();
 
   const registrations = registerScenarios(tempRegistry as any);
