@@ -12,8 +12,6 @@ import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
 import {
   patchFunction,
-  createPatchManager,
-  type PatchManager,
 } from '../../utils/monkey-patch';
 import type Proxification from '../../../types/api-sitna/TC/tool/Proxification';
 import type { TCNamespace } from '../../../types/api-sitna/TC/TCNamespace';
@@ -140,7 +138,6 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
   // ============================================================================
 
   private readonly snackBar = inject(MatSnackBar);
-  private patchManager: PatchManager = createPatchManager();
   private instanceCounter = 0;
   private instanceMap = new WeakMap<object, string>();
   private patchingState: 'idle' | 'patching' | 'patched' = 'idle';
@@ -556,9 +553,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
     this.activeIntervals.forEach((interval) => clearInterval(interval));
     this.activeIntervals.clear();
 
-    // Restore all patches
-    this.patchManager.restoreAll();
-
+    // Patches are restored by base class ngOnDestroy
     // Destroy map
     super.ngOnDestroy();
   }

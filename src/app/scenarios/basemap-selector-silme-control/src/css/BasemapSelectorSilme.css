@@ -1,0 +1,281 @@
+/* Basemap Selector Silme Control Styles */
+/* Styles extracted from sitmun_style.css and scoped to component container */
+
+#mapa-basemap-selector-silme-control {
+  /* Base input[type=range] styles for opacity slider */
+  input[type=range] {
+    width: 70%;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #999;
+    height: 2px;
+    margin: 10px 0;
+    vertical-align: text-top;
+  }
+
+  input[type=range]:focus {
+    outline: none;
+  }
+
+  /* Radio button styles for basemap selection */
+  .tc-ctl-edit-mode input[type=radio]:checked ~ span {
+    border-color: var(--main-color);
+    border-bottom-color: var(--main-color);
+    color: var(--main-color);
+  }
+
+  .tc-ctl-edit .tc-ctl-edit-mode label span {
+    text-align: left;
+    text-indent: -1000vw;
+  }
+
+  /* Basemap selector node styles */
+  /* Background-image is set via JavaScript on .tc-ctl-bms-node element */
+  /* These CSS properties ensure the background-image is visible */
+  .tc-ctl-bms-node {
+    /* Default fallback background-image (if JavaScript doesn't set it) */
+    background-image: url("https://ide.cime.es/test/thumbnails/dummy_map_thumbnail.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Ensure element has dimensions to display background */
+    min-height: 60px;
+    min-width: 100px;
+  }
+
+  /* Basemap selector tree container */
+  .tc-ctl-bms-tree {
+    /* Container for the entire basemap selector control */
+  }
+
+  /* Active maps container */
+  .tc-ctl-bms-active-maps {
+    /* Container for the two active map miniatures */
+  }
+
+  /* Active map miniature */
+  .tc-ctl-bms-active-map-miniature {
+    /* Individual map miniature display */
+  }
+
+  /* Comparable/secondary map elements (hidden by default) */
+  .bms-comparable {
+    /* Elements that are part of the comparison feature */
+    /* Visibility is controlled by JavaScript */
+  }
+
+  /* Slider container */
+  .tc-ctl-bms-slider {
+    /* Opacity slider container */
+  }
+
+  /* Slider control wrapper */
+  .tc-ctl-bms-slider-control {
+    /* Wrapper for slider controls */
+  }
+
+  /* Slider button container */
+  .tc-ctl-bms-slider-control-button-container {
+    /* Container for opacity adjustment buttons */
+  }
+
+  /* Slider input container */
+  .tc-ctl-bms-slider-input-container {
+    /* Container for the range input and label */
+  }
+
+  /* Divider between sections */
+  .tc-ctl-bms-divider {
+    /* Visual divider between active maps and gallery */
+  }
+
+  /* Gallery branch (list container) */
+  .tc-ctl-bms-branch {
+    /* Container for the list of available basemaps */
+  }
+
+  /* More layers node */
+  .tc-ctl-bms-more-node {
+    /* Node for "more layers" option */
+  }
+
+  /* Basemap node info panel */
+  .tc-ctl-bms-info {
+    /* Info panel that appears on hover/click */
+  }
+
+  /* Metadata section within info panel */
+  .tc-ctl-bms-metadata {
+    /* Metadata links section */
+  }
+
+  /* Loading state */
+  .tc-loading {
+    /* Loading indicator styles */
+  }
+
+  /* Disabled state */
+  .tc-disabled {
+    /* Disabled input/control styles */
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Additional basemap selector styles */
+  /* Note: These styles are extracted from sitmun_style.css */
+  /* and preserved as-is for compatibility with SITNA controls */
+  /* Some classes may inherit styles from parent SITNA control styles */
+
+  /* ============================================ */
+  /* Base Control Styles */
+  /* ============================================ */
+  .tc-ctl-bms {
+    padding: 0;
+    background-color: hsl(0deg 0% 98%);
+    /*overflow: auto;*/
+  }
+
+  .tc-ctl-bms > div {
+    overflow: auto;
+  }
+
+  /* ============================================ */
+  /* Container Styles (#bms selector) */
+  /* ============================================ */
+  #bms {
+    padding-top: 0;
+  }
+
+  #bms > h2 {
+    /* TODO: Add images to ./img/ directory (see ./img/README.md) */
+    /* background-image: url(./img/mapaMenosN.png), url(./img/mapaFonsN.png); */
+    background-position: calc(100% - 10px) 10px, 0 0;
+  }
+
+  #bms.tc-collapsed > h2 {
+    /* TODO: Add images to ./img/ directory (see ./img/README.md) */
+    /* background-image: url(./img/mapaMasG.png), url(./img/mapaFonsG.png); */
+    background-color: rgba(0, 0, 0, 0.05);
+    /*background-color: 	rgba(179,73,91,1);*/
+    background-position: calc(100% - 10px) 10px, 0 0;
+  }
+
+  #bms.tc-collapsed > div {
+    display: none;
+  }
+
+  #bms.tc-collapsed > h2 {
+    color: #666;
+  }
+
+  #bms > div {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    max-height: 240px;
+    overflow: auto;
+    /*display: block;*/
+  }
+
+  /* ============================================ */
+  /* Branch/List Styles */
+  /* ============================================ */
+  ul.tc-ctl-bms-branch {
+    list-style-type: none;
+    margin: 0.5em 0 0 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  ul.tc-ctl-bms-branch > li {
+    height: 75px;
+    /*height: 45px;*/
+    width: 24%;
+    position: relative;
+    font-size: 0.75rem;
+  }
+
+  /* ============================================ */
+  /* Node Styles */
+  /* ============================================ */
+  .tc-ctl-bms-node label {
+    position: absolute;
+    width: auto;
+    height: auto;
+    border: 0;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    background-size: cover;
+    background-image: url("https://ide.cime.es/test/thumbnails/dummy_map_thumbnail.jpg");
+  }
+
+  .tc-ctl-bms-node label span {
+    width: auto;
+    height: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    color: #000;
+    padding-top: unset;
+    /*text-shadow: 6.1em 0.05em 0 var(--thumb-text-shadow-color),0.05em -0.05em 0 var(--thumb-text-shadow-color),-0.05em 0.05em 0 var(--thumb-text-shadow-color),-0.05em -0.05em 0 var(--thumb-text-shadow-color);*/
+  }
+
+  #bms .tc-ctl-bms-node input[type=radio] ~ span {
+    width: auto;
+  }
+
+  .tc-ctl-bms-node input[type=radio]:checked ~ span {
+    border-color: var(--main-color);
+  }
+
+  .tc-ctl-bms-node input[type=radio].tc-disabled ~ span:after {
+    font-size: 1em;
+  }
+
+  /* ============================================ */
+  /* Tree Container Styles */
+  /* ============================================ */
+  .tc-ctl-bms-tree {
+    height: 300px;
+    overflow: auto;
+  }
+
+  .tc-ctl-bms-tree > form > span {
+    display: inline-block;
+    width: 30%;
+    line-height: 20px;
+    vertical-align: text-top;
+  }
+
+  /* ============================================ */
+  /* Range Input/Slider Styles */
+  /* ============================================ */
+  .tc-ctl-bms input[type="range"] {
+    width: 60% !important;
+    margin-bottom: 0 !important;
+    margin-left: 25px !important;
+  }
+
+  /* ============================================ */
+  /* Header Button Styles */
+  /* ============================================ */
+  .tc-ctl-bms h2 button.tc-icon-btn.tc-details:before {
+    content: "";
+  }
+}
+
+/* ============================================ */
+/* Mobile Media Query Styles */
+/* ============================================ */
+@media (max-width: 760px) {
+  #mapa-basemap-selector-silme-control {
+    .tc-ctl-bms-tree {
+      height: 150px;
+      overflow: auto;
+    }
+  }
+}
+

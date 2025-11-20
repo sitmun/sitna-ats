@@ -9,8 +9,6 @@ import { BaseScenarioComponent } from '../base-scenario.component';
 import {
   patchFunction,
   patchProperty,
-  createPatchManager,
-  type PatchManager,
 } from '../../utils/monkey-patch';
 import type { ProjectionData } from 'api-sitna';
 import {
@@ -41,7 +39,6 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
   cachedCodes: string[] = [];
 
   private readonly snackBar = inject(MatSnackBar);
-  private patchManager: PatchManager = createPatchManager();
 
   constructor() {
     super();
@@ -64,7 +61,6 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
   }
 
   override ngOnDestroy(): void {
-    this.patchManager.restoreAll();
     super.ngOnDestroy();
   }
 

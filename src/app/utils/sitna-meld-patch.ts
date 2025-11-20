@@ -217,14 +217,14 @@ export function patchMethodsWithLogging(
   definitions.forEach(({ target, methodName, path }) => {
     // Validate target exists
     if (!target) {
-      logger.warn(`Target not available for ${path}, skipping patch`);
+      logger.debug(`Target not available for ${path}, skipping patch`);
       return;
     }
 
     // Validate method exists
     const descriptor = Object.getOwnPropertyDescriptor(target, methodName);
     if (!descriptor || typeof descriptor.value !== 'function') {
-      logger.warn(`Method ${methodName} not found on ${path}, skipping patch`);
+      logger.debug(`Method ${methodName} not found on ${path}, skipping patch`);
       return;
     }
 
@@ -236,14 +236,14 @@ export function patchMethodsWithLogging(
           const startTime = performance.now();
           const methodArgs = joinPoint.args;
 
-          logger.warn(`[${path}] Called with args:`, methodArgs);
+          logger.debug(`[${path}] Called with args:`, methodArgs);
 
           try {
             const result = joinPoint.proceed();
             const endTime = performance.now();
             const duration = endTime - startTime;
 
-            logger.warn(
+            logger.debug(
               `[${path}] Completed in ${duration.toFixed(2)}ms`,
               result
             );
@@ -252,7 +252,7 @@ export function patchMethodsWithLogging(
             if (result instanceof Promise) {
               return result
                 .then((resolved) => {
-                  logger.warn(`[${path}] Promise resolved:`, resolved);
+                  logger.debug(`[${path}] Promise resolved:`, resolved);
                   return resolved;
                 })
                 .catch((error) => {
@@ -276,7 +276,7 @@ export function patchMethodsWithLogging(
       );
 
       restores.push(() => meld.remove(advice));
-      logger.warn(`Applied AOP patch to ${path}`);
+      logger.debug(`Applied AOP patch to ${path}`);
     } catch (error) {
       logger.error(`Failed to patch ${path}:`, error);
     }

@@ -6,7 +6,10 @@ import {
   inject,
   ChangeDetectorRef,
   NgZone,
+  ElementRef,
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import type SitnaMap from 'api-sitna';
 import { SitnaConfigService } from '../services/sitna-config.service';
 import { LoggingService } from '../services/logging.service';
@@ -18,6 +21,53 @@ import type { TCNamespace } from '../../types/api-sitna';
 import { runInZone } from '../utils/zone-helpers';
 import type { SitnaConfig } from '../../types/sitna.types';
 import type { ScenarioMetadata } from '../types/scenario.types';
+import { createMeldPatchManager } from '../utils/sitna-meld-patch';
+
+/**
+ * Unified patch manager interface that supports both single restore functions
+ * (from createPatchManager) and arrays of restore functions (from createMeldPatchManager).
+ */
+type UnifiedPatchManager = {
+  add: (restore: (() => void) | Array<() => void>) => void;
+  restoreAll: () => void;
+  clear: () => void;
+};
+
+/**
+ * Create a unified patch manager that supports both single restore functions
+ * and arrays of restore functions.
+ */
+function createUnifiedPatchManager(): UnifiedPatchManager {
+  const patches: Array<() => void> = [];
+
+  return {
+    add: (restore: (() => void) | Array<() => void>): void => {
+      if (Array.isArray(restore)) {
+        // Array of restore functions (from meld patches)
+        patches.push(...restore);
+      } else {
+        // Single restore function (from monkey patches)
+        patches.push(restore);
+      }
+    },
+    restoreAll: (): void => {
+      patches.forEach((restore) => {
+        try {
+          restore();
+        } catch (error: unknown) {
+          // Direct console usage is intentional: This utility may be called during cleanup
+          // before Angular services are available or after they've been destroyed.
+          // eslint-disable-next-line no-console
+          console.error('Error restoring patch:', error);
+        }
+      });
+      patches.length = 0;
+    },
+    clear: (): void => {
+      patches.length = 0;
+    },
+  };
+}
 
 /**
  * Base class for scenario components that provides common functionality:
@@ -46,12 +96,28 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   protected readonly sitnaNamespaceService = inject(SitnaNamespaceService);
   protected readonly cdr = inject(ChangeDetectorRef);
   protected readonly ngZone = inject(NgZone);
+  protected readonly elementRef = inject(ElementRef<HTMLElement>);
+  protected readonly http = inject(HttpClient);
+
+  /**
+   * Patch manager for AOP patches applied to SITNA/TC methods.
+   * Supports both single restore functions (from createPatchManager) and
+   * arrays of restore functions (from createMeldPatchManager).
+   * Automatically restored in ngOnDestroy.
+   */
+  protected readonly patchManager = createUnifiedPatchManager();
 
   /**
    * Cache for control/script loading promises to prevent duplicate loads.
    * Keyed by control name.
    */
   private readonly controlLoadPromises = new Map<string, Promise<void>>();
+
+  /**
+   * Track injected style elements by scenario name for cleanup.
+   * Keyed by scenario name (or CSS path if scenario name not provided).
+   */
+  private readonly injectedStyleElements = new Map<string, HTMLStyleElement>();
 
   constructor() {
     // Metadata must be set by subclass before calling super()
@@ -66,6 +132,20 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Restore all AOP patches
+    this.patchManager.restoreAll();
+
+    // Remove all injected style elements
+    for (const [key, styleElement] of this.injectedStyleElements.entries()) {
+      try {
+        styleElement.remove();
+      } catch (error) {
+        // Element may have already been removed
+        this.logger.debug(`Style element ${key} already removed or not found`);
+      }
+    }
+    this.injectedStyleElements.clear();
+
     this.destroyMap();
   }
 
@@ -497,6 +577,156 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
 
     this.runInZoneHelper(() => {});
     return false;
+  }
+
+  /**
+   * Inject CSS styles from assets into the component's view container.
+   * This method loads CSS content from the assets directory and injects it as a <style> element
+   * scoped to the component. Useful for scenarios that need to inject CSS dynamically instead of
+   * using ::ng-deep in component stylesheets.
+   *
+   * The injected style element is tracked and automatically removed in ngOnDestroy.
+   *
+   * @param cssPath - Path to the CSS file in assets (e.g., '/assets/scenarios/my-scenario/css/styles.css')
+   * @param scenarioName - Optional scenario identifier for tracking. Defaults to this.metadata.route
+   * @returns Promise that resolves when styles are injected
+   * @throws Error if CSS file cannot be loaded
+   *
+   * @example
+   * ```typescript
+   * await this.injectStylesFromAssets(
+   *   '/assets/scenarios/my-scenario/css/custom.css',
+   *   'my-scenario'
+   * );
+   * ```
+   */
+  protected async injectStylesFromAssets(
+    cssPath: string,
+    scenarioName?: string
+  ): Promise<void> {
+    const key = scenarioName || this.metadata.route;
+
+    // Check if already injected
+    if (this.injectedStyleElements.has(key)) {
+      return; // Already injected
+    }
+
+    try {
+      // Load CSS content from assets
+      const cssContent = await firstValueFrom(
+        this.http.get(cssPath, { responseType: 'text' })
+      );
+
+      // Create style element
+      const styleElement = document.createElement('style');
+      styleElement.textContent = cssContent;
+      styleElement.setAttribute('data-scenario', key);
+      styleElement.setAttribute('data-injected-at', new Date().toISOString());
+
+      // Append to component's native element (scoped to component view container)
+      this.elementRef.nativeElement.appendChild(styleElement);
+      this.injectedStyleElements.set(key, styleElement);
+
+      // Log success with verification info
+      this.logger.warn(`Injected CSS styles from ${cssPath} into component view container`, {
+        styleElementId: styleElement.getAttribute('data-scenario'),
+        cssLength: cssContent.length,
+        cssPath,
+        parentElement: this.elementRef.nativeElement.tagName,
+        parentId: this.elementRef.nativeElement.id || 'no-id',
+        verification: `Check browser DevTools: Elements tab -> look for <style data-scenario="${key}">`,
+      });
+
+      // Verify injection by checking if style element is actually in the component's native element
+      // Use setTimeout to allow DOM to update, then verify
+      setTimeout(() => {
+        const isInComponent = this.elementRef.nativeElement.contains(styleElement);
+        const foundInDocument = document.querySelector(`style[data-scenario="${key}"]`);
+
+        if (isInComponent && foundInDocument) {
+          this.logger.warn('Style injection verified: <style> element found in component and document');
+        } else if (isInComponent) {
+          this.logger.warn('Style injection verified: <style> element found in component (may not be queryable via document.querySelector)');
+        } else {
+          this.logger.error('Style injection verification failed: <style> element not found in component', {
+            isInComponent,
+            foundInDocument: !!foundInDocument,
+            styleElementParent: styleElement.parentElement?.tagName,
+          });
+        }
+      }, 0);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to inject CSS styles from ${cssPath}`, {
+        error: errorMessage,
+        cssPath,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Inject CSS styles from a string directly into the component's view container.
+   * This method is useful when CSS content is imported/bundled at build time.
+   *
+   * @param cssContent - CSS content as a string
+   * @param scenarioName - Optional scenario identifier for tracking. Defaults to this.metadata.route
+   * @returns void (synchronous, no promise needed)
+   *
+   * @example
+   * ```typescript
+   * const cssContent = require('./styles.css?raw') as string;
+   * this.injectStylesFromString(cssContent, 'my-scenario');
+   * ```
+   */
+  protected injectStylesFromString(
+    cssContent: string,
+    scenarioName?: string
+  ): void {
+    const key = scenarioName || this.metadata.route;
+
+    // Check if already injected
+    if (this.injectedStyleElements.has(key)) {
+      return; // Already injected
+    }
+
+    // Create style element
+    const styleElement = document.createElement('style');
+    styleElement.textContent = cssContent;
+    styleElement.setAttribute('data-scenario', key);
+    styleElement.setAttribute('data-injected-at', new Date().toISOString());
+
+    // Append to component's native element (scoped to component view container)
+    this.elementRef.nativeElement.appendChild(styleElement);
+    this.injectedStyleElements.set(key, styleElement);
+
+    // Log success with verification info
+    this.logger.warn(`Injected CSS styles from string into component view container`, {
+      styleElementId: styleElement.getAttribute('data-scenario'),
+      cssLength: cssContent.length,
+      parentElement: this.elementRef.nativeElement.tagName,
+      parentId: this.elementRef.nativeElement.id || 'no-id',
+      verification: `Check browser DevTools: Elements tab -> look for <style data-scenario="${key}">`,
+    });
+
+    // Verify injection by checking if style element is actually in the component's native element
+    // Use setTimeout to allow DOM to update, then verify
+    setTimeout(() => {
+      const isInComponent = this.elementRef.nativeElement.contains(styleElement);
+      const foundInDocument = document.querySelector(`style[data-scenario="${key}"]`);
+
+      if (isInComponent && foundInDocument) {
+        this.logger.warn('Style injection verified: <style> element found in component and document');
+      } else if (isInComponent) {
+        this.logger.warn('Style injection verified: <style> element found in component (may not be queryable via document.querySelector)');
+      } else {
+        this.logger.error('Style injection verification failed: <style> element not found in component', {
+          isInComponent,
+          foundInDocument: !!foundInDocument,
+          styleElementParent: styleElement.parentElement?.tagName,
+        });
+      }
+    }, 0);
   }
 
   /**

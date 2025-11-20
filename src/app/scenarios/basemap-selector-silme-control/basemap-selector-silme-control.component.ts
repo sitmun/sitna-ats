@@ -4,21 +4,24 @@ import {
 } from '@angular/core';
 import scenarioConfigJson from './sitna-config.json';
 import type { ScenarioMetadata } from '../../types/scenario.types';
-import type { SitnaConfig } from '../../../types/sitna.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
 import {
-  createMeldPatchManager,
   patchMethodsWithLogging,
   type MethodPatchDefinition,
 } from '../../utils/sitna-meld-patch';
+import type { TCNamespace } from '../../../types/api-sitna';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
   name: 'Basemap Selector Silme Control',
   description:
-    'Map with basemap selector control and TC.warp method patching using AOP',
-  tags: ['map', 'controls', 'basemap', 'patch', 'aop', 'warp'],
+    'Map with basemap selector control and TC.warp method patching',
+  tags: ['map', 'controls', 'basemap', 'patch'],
   route: 'basemap-selector-silme-control',
 };
+
+// eslint-disable-next-line import/no-webpack-loader-syntax
+// @ts-ignore - webpack inline loader syntax
+import basemapSelectorSilmeCss from '!!raw-loader!./src/css/BasemapSelectorSilme.css';
 
 @Component({
   selector: 'app-basemap-selector-silme-control',
@@ -27,13 +30,14 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent {
-  private patchManager = createMeldPatchManager();
-
   constructor() {
     super();
     this.metadata = SCENARIO_METADATA;
     this.initializeMapWithPreload({
       preloadSteps: [
+        async () => {
+          this.injectStylesFromString(basemapSelectorSilmeCss, SCENARIO_METADATA.route);
+        },
         async () => {
           // Load our custom scripts
           await this.ensureScriptsLoaded({
@@ -53,7 +57,7 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
         },
         () => this.applyPatchWithRetry(),
       ],
-      scenarioConfig: scenarioConfigJson as SitnaConfig,
+      scenarioConfig: scenarioConfigJson,
       mapOptions: {
         successMessage: 'Basemap Selector Silme Control: Map loaded successfully',
         onLoaded: () => {
@@ -64,60 +68,33 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
     });
   }
 
-  override ngOnDestroy(): void {
-    this.patchManager.restoreAll();
-    super.ngOnDestroy();
-  }
 
   private async applyPatchWithRetry(): Promise<void> {
-    const TC = await this.tcNamespaceService.waitForTC();
-    await this.tcNamespaceService.waitForTCProperty('wrap');
-    const wrap = TC?.wrap;
-    await this.tcNamespaceService.waitForTCProperty('control');
-    const control = TC?.control;
-
-    try {
-      this.logger.warn('Applying in-component AOP wrappers');
-
-      // Extract common prototypes for cleaner code
-      const mapPrototype = wrap?.['Map']?.['prototype'];
-      const rasterPrototype = wrap?.['layer']?.['Raster']?.['prototype'];
-
-      // Define the methods to patch from TC.patch.js
-      const methodsToPatch: MethodPatchDefinition[] = [
-        {
-          target: mapPrototype,
-          methodName: 'insertLayer',
-          path: 'TC.wrap.Map.prototype.insertLayer',
-        },
-        {
-          target: mapPrototype,
-          methodName: 'setBaseLayer',
-          path: 'TC.wrap.Map.prototype.setBaseLayer',
-        },
-        {
-          target: rasterPrototype,
-          methodName: 'getAttribution',
-          path: 'TC.wrap.layer.Raster.prototype.getAttribution',
-        },
-        {
-          target: rasterPrototype,
-          methodName: 'getCompatibleCRS',
-          path: 'TC.wrap.layer.Raster.prototype.getCompatibleCRS',
-        },
-      ];
-
-      // Patch methods using the reusable utility function
-      const restores = patchMethodsWithLogging(methodsToPatch, this.logger);
-
-      this.patchManager.add(restores);
-      this.logger.warn(
-        `Applied AOP patches: ${restores.length} methods patched`
-      );
-    } catch (error) {
-      this.logger.error('Failed to apply TC.patch.js patches', error);
-      throw error;
-    }
+    const TC: TCNamespace = await this.tcNamespaceService.waitForTC();
+    const methodsToPatch: MethodPatchDefinition[] = [
+      {
+        target: TC.wrap.Map.prototype,
+        methodName: 'insertLayer',
+        path: 'TC.wrap.Map.prototype.insertLayer',
+      },
+      {
+        target: TC.wrap.Map.prototype,
+        methodName: 'setBaseLayer',
+        path: 'TC.wrap.Map.prototype.setBaseLayer',
+      },
+      {
+        target: TC.wrap.layer.Raster.prototype,
+        methodName: 'getAttribution',
+        path: 'TC.wrap.layer.Raster.prototype.getAttribution',
+      },
+      {
+        target: TC.wrap.layer.Raster.prototype,
+        methodName: 'getCompatibleCRS',
+        path: 'TC.wrap.layer.Raster.prototype.getCompatibleCRS',
+      },
+    ];
+    const restores = patchMethodsWithLogging(methodsToPatch, this.logger);
+    this.patchManager.add(restores);
   }
 }
 

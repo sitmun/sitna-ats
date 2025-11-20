@@ -31,11 +31,11 @@ export interface TCNamespace {
    * Get a TC-wrapped map instance from a DOM element.
    * Used to access the internal TC map instance after SITNA map initialization.
    */
-  Map?: {
+  Map: {
     get?: (element: Element | null) => unknown;
     [key: string]: unknown;
   };
-  tool?: {
+  tool: {
     Proxification?: typeof Proxification;
     [key: string]: unknown;
   };
@@ -50,18 +50,18 @@ export interface TCNamespace {
    * This property may be patched/backported in some scenarios.
    */
   projectionDataCache?: Record<string, ProjectionData>;
-  wrap?: {
-    Map?: {
-      prototype?: {
-        insertLayer?: (...args: unknown[]) => unknown;
-        setBaseLayer?: (...args: unknown[]) => unknown;
+  wrap: {
+    Map: {
+      prototype: {
+        insertLayer: (...args: unknown[]) => unknown;
+        setBaseLayer: (...args: unknown[]) => unknown;
         [key: string]: unknown;
       };
       [key: string]: unknown;
     };
-    layer?: {
-      Raster?: {
-        prototype?: {
+    layer: {
+      Raster: {
+        prototype: {
           getAttribution?: (...args: unknown[]) => unknown;
           getCompatibleCRS?: (...args: unknown[]) => unknown;
           [key: string]: unknown;
@@ -72,10 +72,10 @@ export interface TCNamespace {
     };
     [key: string]: unknown;
   };
-  control?: {
-    LayerCatalogSilmeFolders?: {
-      prototype?: {
-        render?: (...args: unknown[]) => unknown;
+  control: {
+    LayerCatalogSilmeFolders: {
+      prototype: {
+        render: (...args: unknown[]) => unknown;
         [key: string]: unknown;
       };
       [key: string]: unknown;

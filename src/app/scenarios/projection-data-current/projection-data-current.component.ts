@@ -6,10 +6,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import scenarioConfigJson from './sitna-config.json';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
-import {
-  createPatchManager,
-  type PatchManager,
-} from '../../utils/monkey-patch';
 
 // The patch file directly modifies TC.getProjectionData when loaded
 // We'll require it in applyPatch() after TC is available and save the original for restoration
@@ -37,7 +33,6 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
   cachedCodes: string[] = [];
 
   private readonly snackBar = inject(MatSnackBar);
-  private patchManager: PatchManager = createPatchManager();
 
   constructor() {
     super();
@@ -60,7 +55,6 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
   }
 
   override ngOnDestroy(): void {
-    this.patchManager.restoreAll();
     super.ngOnDestroy();
   }
 

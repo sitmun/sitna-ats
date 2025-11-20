@@ -45,6 +45,7 @@ export interface MethodPatchDefinition {
  * Logger interface compatible with LoggingService
  */
 export interface Logger {
+  debug: (message: string, ...args: unknown[]) => void;
   warn: (message: string, ...args: unknown[]) => void;
   error: (message: string, ...args: unknown[]) => void;
 }

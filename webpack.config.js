@@ -5,20 +5,38 @@ const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const apiSitnaSource = path.join(__dirname, 'node_modules/api-sitna');
 
-module.exports = {
-  resolve: {
-    // Para evitar errores "Module not found" durante el empaquetamiento
-    fallback: {
-      assert: false,
-      util: require.resolve("util/")
-    }
-  },
-  plugins: [
-    // Define la ruta base de la API SITNA para la carga de recursos
+// Function-based config for proper merging with Angular's webpack config
+module.exports = (config, options) => {
+  // Merge resolve fallbacks
+  if (!config.resolve) {
+    config.resolve = {};
+  }
+  if (!config.resolve.fallback) {
+    config.resolve.fallback = {};
+  }
+  Object.assign(config.resolve.fallback, {
+    assert: false,
+    util: require.resolve("util/")
+  });
+
+  // Note: Inline loader syntax (!!raw-loader!) bypasses all config rules,
+  // so we don't need to add a rule here. The inline syntax will work
+  // regardless of webpack config as long as raw-loader is installed.
+
+  // Add plugins
+  if (!config.plugins) {
+    config.plugins = [];
+  }
+
+  // Add DefinePlugin for SITNA_BASE_URL
+  config.plugins.push(
     new webpack.DefinePlugin({
       SITNA_BASE_URL: JSON.stringify('/js/api-sitna/')
-    }),
-    // Copia los recursos necesarios a la carpeta de publicación
+    })
+  );
+
+  // Add CopyWebpackPlugin
+  config.plugins.push(
     new CopyWebpackPlugin({
       patterns: [
         {
@@ -77,8 +95,30 @@ module.exports = {
             'src/app/scenarios/hello-world-control/layout'
           ),
           to: 'js/api-sitna/layout/hello-world-control'
+        },
+        // Copy CSS files from scenario src/css directories to assets
+        {
+          from: '**/*.css',
+          context: path.join(__dirname, 'src/app/scenarios'),
+          to({ context, absoluteFilename }) {
+            // Extract scenario name and CSS filename from the absolute path
+            // Example: .../src/app/scenarios/basemap-selector-silme-control/src/css/BasemapSelectorSilme.css
+            const relativePath = path.relative(context, absoluteFilename);
+            const match = relativePath.match(/^([^/]+)\/src\/css\/(.+)$/);
+            if (match) {
+              const [, scenarioName, cssFileName] = match;
+              return path.join('assets/scenarios', scenarioName, 'css', cssFileName).replace(/\\/g, '/');
+            }
+            // Fallback: preserve structure but move to assets/scenarios
+            return path.join('assets/scenarios', relativePath).replace(/\\/g, '/');
+          },
+          globOptions: {
+            ignore: ['**/node_modules/**']
+          }
         }
       ]
     })
-  ]
+  );
+
+  return config;
 };
