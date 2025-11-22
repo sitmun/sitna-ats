@@ -9,7 +9,6 @@ import {
   patchMethodsWithLogging,
   type MethodPatchDefinition,
 } from '../../utils/sitna-meld-patch';
-import type { TCNamespace } from '../../../types/api-sitna';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
   name: 'Basemap Selector Silme Control',
@@ -40,18 +39,13 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
         },
         async () => {
           // Load our custom scripts
-          await this.ensureScriptsLoaded({
-            checkLoaded: () => this.isTCControlRegistered('BasemapSelectorSilme'),
-            loadScripts: [
-              () => {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                require('./src/SilmeUtils.js');
-              },
-              () => {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                require('./src/controls/BasemapSelectorSilme.js');
-              },
-            ],
+          await this.ensureControlLoaded({
+            loadScript: () => {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              require('./src/SilmeUtils.js');
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              require('./src/controls/BasemapSelectorSilme.js');
+            },
             controlName: 'BasemapSelectorSilme',
           });
         },
@@ -70,31 +64,32 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
 
 
   private async applyPatchWithRetry(): Promise<void> {
-    const TC: TCNamespace = await this.tcNamespaceService.waitForTC();
-    const methodsToPatch: MethodPatchDefinition[] = [
-      {
-        target: TC.wrap.Map.prototype,
-        methodName: 'insertLayer',
-        path: 'TC.wrap.Map.prototype.insertLayer',
-      },
-      {
-        target: TC.wrap.Map.prototype,
-        methodName: 'setBaseLayer',
-        path: 'TC.wrap.Map.prototype.setBaseLayer',
-      },
-      {
-        target: TC.wrap.layer.Raster.prototype,
-        methodName: 'getAttribution',
-        path: 'TC.wrap.layer.Raster.prototype.getAttribution',
-      },
-      {
-        target: TC.wrap.layer.Raster.prototype,
-        methodName: 'getCompatibleCRS',
-        path: 'TC.wrap.layer.Raster.prototype.getCompatibleCRS',
-      },
-    ];
-    const restores = patchMethodsWithLogging(methodsToPatch, this.logger);
-    this.patchManager.add(restores);
+    await this.waitForTCAndApply(async (TC) => {
+      const methodsToPatch: MethodPatchDefinition[] = [
+        {
+          target: TC.wrap.Map.prototype,
+          methodName: 'insertLayer',
+          path: 'TC.wrap.Map.prototype.insertLayer',
+        },
+        {
+          target: TC.wrap.Map.prototype,
+          methodName: 'setBaseLayer',
+          path: 'TC.wrap.Map.prototype.setBaseLayer',
+        },
+        {
+          target: TC.wrap.layer.Raster.prototype,
+          methodName: 'getAttribution',
+          path: 'TC.wrap.layer.Raster.prototype.getAttribution',
+        },
+        {
+          target: TC.wrap.layer.Raster.prototype,
+          methodName: 'getCompatibleCRS',
+          path: 'TC.wrap.layer.Raster.prototype.getCompatibleCRS',
+        },
+      ];
+      const restores = patchMethodsWithLogging(methodsToPatch, this.logger);
+      this.patchManager.add(restores);
+    });
   }
 }
 

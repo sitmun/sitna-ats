@@ -37,19 +37,5 @@ export class ErrorHandlingService {
 
     return appError;
   }
-
-  handlePromiseError(
-    error: unknown,
-    context?: string
-  ): Promise<AppError> {
-    const appError = this.handleError(error, context);
-    return Promise.resolve(appError);
-  }
-
-  createErrorHandler(context?: string): (error: unknown) => void {
-    return (error: unknown): void => {
-      this.handleError(error, context);
-    };
-  }
 }
 

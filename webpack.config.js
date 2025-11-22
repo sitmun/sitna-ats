@@ -77,13 +77,15 @@ module.exports = (config, options) => {
             // Extract scenario name and template filename from the absolute path
             // Example: .../src/app/scenarios/basemap-selector-silme-control/src/templates/BasemapSelectorSilme.hbs
             const relativePath = path.relative(context, absoluteFilename);
-            const match = relativePath.match(/^([^/]+)\/src\/templates\/(.+)$/);
+            // Normalize to forward slashes for cross-platform compatibility (Windows uses backslashes)
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            const match = normalizedPath.match(/^([^/]+)\/src\/templates\/(.+)$/);
             if (match) {
               const [, scenarioName, templateName] = match;
               return path.join('assets/js/patch/templates', scenarioName, templateName).replace(/\\/g, '/');
             }
             // Fallback: preserve structure but move to assets/js/patch/templates
-            return path.join('assets/js/patch/templates', relativePath).replace(/\\/g, '/');
+            return path.join('assets/js/patch/templates', normalizedPath).replace(/\\/g, '/');
           },
           globOptions: {
             ignore: ['**/node_modules/**']
@@ -104,13 +106,15 @@ module.exports = (config, options) => {
             // Extract scenario name and CSS filename from the absolute path
             // Example: .../src/app/scenarios/basemap-selector-silme-control/src/css/BasemapSelectorSilme.css
             const relativePath = path.relative(context, absoluteFilename);
-            const match = relativePath.match(/^([^/]+)\/src\/css\/(.+)$/);
+            // Normalize to forward slashes for cross-platform compatibility (Windows uses backslashes)
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            const match = normalizedPath.match(/^([^/]+)\/src\/css\/(.+)$/);
             if (match) {
               const [, scenarioName, cssFileName] = match;
               return path.join('assets/scenarios', scenarioName, 'css', cssFileName).replace(/\\/g, '/');
             }
             // Fallback: preserve structure but move to assets/scenarios
-            return path.join('assets/scenarios', relativePath).replace(/\\/g, '/');
+            return path.join('assets/scenarios', normalizedPath).replace(/\\/g, '/');
           },
           globOptions: {
             ignore: ['**/node_modules/**']

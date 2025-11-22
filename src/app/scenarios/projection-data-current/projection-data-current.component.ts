@@ -1,11 +1,9 @@
 import {
   Component,
-  inject,
 } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import scenarioConfigJson from './sitna-config.json';
 import type { ScenarioMetadata } from '../../types/scenario.types';
-import { BaseScenarioComponent } from '../base-scenario.component';
+import { BaseProjectionScenarioComponent } from '../shared/base-projection-scenario.component';
 
 // The patch file directly modifies TC.getProjectionData when loaded
 // We'll require it in applyPatch() after TC is available and save the original for restoration
@@ -25,14 +23,7 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   templateUrl: './projection-data-current.component.html',
   styleUrls: ['./projection-data-current.component.scss'],
 })
-export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
-  epsgCode: string = '4326';
-  testResult: ProjectionData | false | null = null;
-  testError: string | null = null;
-  isLoading: boolean = false;
-  cachedCodes: string[] = [];
-
-  private readonly snackBar = inject(MatSnackBar);
+export class ProjectionDataCurrentComponent extends BaseProjectionScenarioComponent {
 
   constructor() {
     super();
@@ -41,7 +32,7 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
       preloadSteps: [
         () => this.applyPatchWithRetry(),
       ],
-      scenarioConfig: scenarioConfigJson as Parameters<typeof this.scenarioMapService.initializeScenarioMap>[0],
+      scenarioConfig: scenarioConfigJson,
       mapOptions: {
         successMessage: 'Projection Data Current: Map loaded successfully',
         onLoaded: () => {
@@ -59,8 +50,7 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
   }
 
   private async applyPatchWithRetry(): Promise<void> {
-    const TC = await this.tcNamespaceService.waitForTC();
-    await this.applyPatch(TC);
+    await this.waitForTCAndApply((TC) => this.applyPatch(TC));
   }
 
   private async applyPatch(TC: NonNullable<ReturnType<typeof this.tcNamespaceService.getTC>>): Promise<void> {
@@ -94,7 +84,7 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
     }
   }
 
-  testGetProjectionDataSync(): void {
+  override testGetProjectionDataSync(): void {
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
@@ -159,7 +149,7 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
     }
   }
 
-  async testGetProjectionDataAsync(): Promise<void> {
+  override async testGetProjectionDataAsync(): Promise<void> {
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
@@ -212,39 +202,6 @@ export class ProjectionDataCurrentComponent extends BaseScenarioComponent {
     }
   }
 
-  updateCachedCodes(showNotification: boolean = false): void {
-    const previousCount = this.cachedCodes.length;
-    const TC = this.tcNamespaceService.getTC();
-    // The cache is now accessible via TC.projectionDataCache (exposed through globalThis)
-    const cache = TC?.['projectionDataCache'] as Record<string, ProjectionData> | undefined;
-    if (cache) {
-      this.cachedCodes = Object.keys(cache).sort();
-    } else {
-      this.cachedCodes = [];
-    }
-
-    const newCount = this.cachedCodes.length;
-    const added = newCount - previousCount;
-
-    // Show feedback to user via snackbar only when explicitly requested (button click)
-    if (showNotification) {
-      let message: string;
-      if (added > 0) {
-        message = `Cache refreshed: ${added} new projection(s) added. Total: ${newCount}`;
-        this.snackBar.open(message, 'Close', { duration: 4000 });
-      } else if (previousCount === 0 && newCount > 0) {
-        message = `Cache loaded: ${newCount} projection(s) cached`;
-        this.snackBar.open(message, 'Close', { duration: 3000 });
-      } else {
-        message = `Cache refreshed: ${newCount} projection(s) (no changes)`;
-        this.snackBar.open(message, 'Close', { duration: 2500 });
-      }
-
-      this.logger.info(message);
-    }
-
-    this.runInZoneHelper(() => {});
-  }
 
 }
 

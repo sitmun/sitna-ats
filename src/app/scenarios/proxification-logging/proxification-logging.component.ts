@@ -1,12 +1,8 @@
 import {
   Component,
-  type OnInit,
-  type OnDestroy,
-  afterNextRender,
   inject,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import type SitnaMap from 'api-sitna';
 import scenarioConfigJson from './sitna-config.json';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
@@ -14,7 +10,6 @@ import {
   patchFunction,
 } from '../../utils/monkey-patch';
 import type Proxification from '../../../types/api-sitna/TC/tool/Proxification';
-import type { TCNamespace } from '../../../types/api-sitna/TC/TCNamespace';
 
 export interface CallerInfo {
   functionName?: string;
@@ -148,16 +143,6 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
   // ============================================================================
   // Helper Methods
   // ============================================================================
-
-  /**
-   * Helper method to safely access TC from window or globalThis.
-   * TC is exposed as globalThis.TC in sitna.js
-   *
-   * @returns TC namespace if available, undefined otherwise
-   */
-  private getTC(): TCNamespace | undefined {
-    return this.tcNamespaceService.getTC();
-  }
 
   /**
    * Capture and parse stack trace to extract caller information.
@@ -535,7 +520,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
       preloadSteps: [
         () => this.setupProxificationPatching(),
       ],
-      scenarioConfig: scenarioConfigJson as Parameters<typeof this.scenarioMapService.initializeScenarioMap>[0],
+      scenarioConfig: scenarioConfigJson,
       mapOptions: {
         successMessage: 'Proxification Logging: Map loaded successfully',
         onLoaded: () => {
@@ -566,7 +551,15 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
     this.logger.debug('[Proxification Patching] Starting setup...');
 
     try {
-      // First, ensure Proxification is loaded before attempting to patch
+      // CRITICAL: Wait for TC and SITNA to be fully loaded first
+      // This ensures both namespaces and all their properties are available before patching
+      await Promise.all([
+        this.tcNamespaceService.waitForTC(),
+        this.sitnaNamespaceService.waitForSITNA(),
+      ]);
+      this.logger.debug('[Proxification Patching] TC and SITNA namespaces are available');
+
+      // Now ensure Proxification is loaded before attempting to patch
       await this.ensureProxificationLoaded();
 
       // Patch TC.loadProjDefAsync (which also loads Proxification lazily)
@@ -605,7 +598,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
           clearInterval(checkInterval);
           this.activeIntervals.delete(checkInterval);
           // Verify the patch is actually in place before proceeding
-          const TC = this.getTC();
+          const TC = this.tcNamespaceService.getTC();
           const tool = TC?.tool;
           const isPatched = tool?.Proxification && typeof tool.Proxification === 'function';
           this.logger.debug('[Proxification Patching] Patch verified:', isPatched);
@@ -638,7 +631,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
    */
   private async ensureProxificationLoaded(): Promise<void> {
     this.logger.debug('[Proxification Patching] ensureProxificationLoaded called');
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     this.logger.debug('[Proxification Patching] TC available:', !!TC);
     if (!TC) {
       this.logger.error('[Proxification Patching] TC not available!');
@@ -697,7 +690,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
       return this.patchingState === 'patched';
     }
 
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     this.logger.debug('[Proxification Patching] TC available:', !!TC);
     const tool = TC?.tool;
     this.logger.debug('[Proxification Patching] tool available:', !!tool);
@@ -797,7 +790,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
         );
         return;
       }
-      const currentTC = self.getTC();
+      const currentTC = self.tcNamespaceService.getTC();
       const currentTool = currentTC?.tool;
       if (currentTool?.Proxification && self.patchingState !== 'patched') {
         clearInterval(retryInterval);
@@ -818,7 +811,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
    * 2. Ensure proxificationTool methods are patched even if the instance wasn't created through our patched constructor
    */
   private patchLayerConstructor(): void {
-    const SITNA = window.SITNA;
+    const SITNA = this.sitnaNamespaceService.getSITNA();
     const layer = SITNA?.['layer'] as { Layer?: { prototype?: Record<string, unknown> } } | undefined;
 
     if (!layer?.Layer?.prototype) {
@@ -944,7 +937,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
    * - No separate patching of module exports is required
    */
   private patchLoadProjDefAsync(): void {
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     const loadProjDefAsync = TC?.loadProjDefAsync;
 
     if (!loadProjDefAsync) {
@@ -990,7 +983,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
    * Uses Object.defineProperty to create a setter that triggers patching.
    */
   private patchToolNamespace(): void {
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     if (!TC?.tool) {
       return;
     }
@@ -1032,7 +1025,7 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
    */
   private patchPrototypeMethods(): void {
     this.logger.debug('[Proxification Patching] patchPrototypeMethods called');
-    const TC = this.getTC();
+    const TC = this.tcNamespaceService.getTC();
     const Proxification = TC?.tool?.Proxification;
     this.logger.debug('[Proxification Patching] tool.Proxification:', !!Proxification);
     this.logger.debug('[Proxification Patching] tool.Proxification.prototype:', !!Proxification?.prototype);
@@ -1157,23 +1150,6 @@ export class ProxificationLoggingComponent extends BaseScenarioComponent {
       this.statistics.methodCounts.set(entry.method, count + 1);
       this.applyFilters();
     });
-  }
-
-  // ============================================================================
-  // Map Lifecycle Methods
-  // ============================================================================
-
-  /**
-   * Initialize the SITNA map with scenario-specific configuration.
-   */
-  protected override initializeMap(): void {
-    // Map initialization is handled by initializeMapWithPreload in constructor
-    // If map initialization fails, update loading state
-    if (this.map === null) {
-      this.runInZoneHelper(() => {
-        this.isMapLoading = false;
-      });
-    }
   }
 
   // ============================================================================

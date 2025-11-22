@@ -8,10 +8,8 @@ import type {
   MeldJoinPoint,
   MethodPatchDefinition,
   Logger,
-  MethodPatch,
   SitnaMethodPatches,
 } from '../../types/meld.types';
-import type { SitnaPatchConfig } from '../../types/patch.types';
 
 // meld is a CommonJS module, so we use require with proper typing
 // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires

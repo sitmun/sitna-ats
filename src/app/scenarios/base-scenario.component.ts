@@ -9,7 +9,6 @@ import {
   ElementRef,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import type SitnaMap from 'api-sitna';
 import { SitnaConfigService } from '../services/sitna-config.service';
 import { LoggingService } from '../services/logging.service';
@@ -17,17 +16,15 @@ import { ErrorHandlingService } from '../services/error-handling.service';
 import { ScenarioMapService, type InitializeScenarioMapOptions } from '../services/scenario-map.service';
 import { TCNamespaceService } from '../services/tc-namespace.service';
 import { SitnaNamespaceService } from '../services/sitna-namespace.service';
-import type { TCNamespace } from '../../types/api-sitna';
 import { runInZone } from '../utils/zone-helpers';
 import type { SitnaConfig } from '../../types/sitna.types';
 import type { ScenarioMetadata } from '../types/scenario.types';
-import { createMeldPatchManager } from '../utils/sitna-meld-patch';
 
 /**
  * Unified patch manager interface that supports both single restore functions
- * (from createPatchManager) and arrays of restore functions (from createMeldPatchManager).
+ * (from createPatchManager) and arrays of restore functions (from meld patches).
  */
-type UnifiedPatchManager = {
+interface UnifiedPatchManager {
   add: (restore: (() => void) | Array<() => void>) => void;
   restoreAll: () => void;
   clear: () => void;
@@ -102,7 +99,7 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   /**
    * Patch manager for AOP patches applied to SITNA/TC methods.
    * Supports both single restore functions (from createPatchManager) and
-   * arrays of restore functions (from createMeldPatchManager).
+   * arrays of restore functions (from meld patches).
    * Automatically restored in ngOnDestroy.
    */
   protected readonly patchManager = createUnifiedPatchManager();
@@ -236,6 +233,20 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Wait for TC namespace to be available and then apply a patch callback.
+   * This helper standardizes the common pattern of waiting for TC before applying patches.
+   *
+   * @param callback - Function that receives TC namespace and applies patches
+   * @returns Promise that resolves when the patch is applied
+   */
+  protected async waitForTCAndApply(
+    callback: (TC: NonNullable<ReturnType<typeof this.tcNamespaceService.getTC>>) => Promise<void>
+  ): Promise<void> {
+    const TC = await this.tcNamespaceService.waitForTC();
+    await callback(TC);
+  }
+
+  /**
    * Fix CSS class mismatch in Coordinates control dialog.
    * The ProjectionSelector uses 'tc-ctl-projs-cur-crs-name' but Coordinates dialog
    * template uses 'tc-ctl-coords-cur-crs-name'. This patch fixes the selector.
@@ -288,37 +299,73 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Convert a preLoad string identifier or array to a Promise-returning function.
-   * Supports common patterns:
-   * - 'sitna-control' -> waits for SITNA.control.Control
-   * - 'tc' -> waits for TC namespace
-   * - 'tc:propertyPath' -> waits for TC property (e.g., 'tc:apiLocation', 'tc:control.FeatureInfoSilme')
+   * Registry of dependency handlers keyed by identifier.
+   * Supports exact matches (e.g., 'SITNA.control', 'TC').
+   * Subclasses can extend this registry to add custom handlers.
+   */
+  private readonly dependencyHandlers: Record<string, (identifier: string) => Promise<void>> = {
+    'SITNA.control': async () => {
+      await this.sitnaNamespaceService.waitForSitnaControl();
+    },
+    'TC': async () => {
+      await this.tcNamespaceService.waitForTC();
+    }
+  };
+
+  /**
+   * Get available dependency handler patterns for error messages.
+   *
+   * @returns Array of available pattern strings
+   */
+  private getAvailableDependencyPatterns(): string[] {
+    return Object.keys(this.dependencyHandlers);
+  }
+
+  /**
+   * Find a handler for the given identifier by matching against registry.
+   *
+   * @param identifier - The dependency identifier to find a handler for
+   * @returns The handler function, or undefined if no match found
+   */
+  private findDependencyHandler(identifier: string): ((identifier: string) => Promise<void>) | undefined {
+    return this.dependencyHandlers[identifier];
+  }
+
+  /**
+   * Convert a dependencies string identifier or array to a Promise-returning function.
+   * Uses a registry pattern for extensibility and maintainability.
+   *
+   * Supported patterns:
+   * - 'SITNA.control' -> waits for SITNA.control.Control
+   * - 'TC' -> waits for TC namespace (includes core properties like apiLocation and syncLoadJS)
    * - Array of strings -> waits for all in sequence
    * - Function -> returns as-is
    *
-   * @param preLoad - String identifier, array of strings, or function
+   * Subclasses can extend the dependencyHandlers registry to add custom handlers.
+   *
+   * @param dependencies - String identifier, array of strings, or function
    * @returns Function that returns a Promise<void>
+   * @throws Error if identifier is not recognized and lists available patterns
    */
-  private resolvePreLoad(
-    preLoad: string | string[] | (() => Promise<void>)
+  private resolveDependencies(
+    dependencies: string | string[] | (() => Promise<void>)
   ): () => Promise<void> {
-    if (typeof preLoad === 'function') {
-      return preLoad;
+    if (typeof dependencies === 'function') {
+      return dependencies;
     }
 
-    const identifiers = Array.isArray(preLoad) ? preLoad : [preLoad];
+    const identifiers = Array.isArray(dependencies) ? dependencies : [dependencies];
 
     return async () => {
       for (const identifier of identifiers) {
-        if (identifier === 'sitna-control') {
-          await this.sitnaNamespaceService.waitForSitnaControl();
-        } else if (identifier === 'tc') {
-          await this.tcNamespaceService.waitForTC();
-        } else if (identifier.startsWith('tc:')) {
-          const propertyPath = identifier.slice(3); // Remove 'tc:' prefix
-          await this.tcNamespaceService.waitForTCProperty(propertyPath);
+        const handler = this.findDependencyHandler(identifier);
+        if (handler) {
+          await handler(identifier);
         } else {
-          throw new Error(`Unknown preLoad identifier: ${identifier}`);
+          const availablePatterns = this.getAvailableDependencyPatterns().join(', ');
+          throw new Error(
+            `Unknown dependency identifier: "${identifier}". Available patterns: ${availablePatterns}`
+          );
         }
       }
     };
@@ -330,25 +377,30 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
    * This method standardizes the common pattern of loading control scripts.
    *
    * @param options - Configuration options for loading the control
-   * @param options.checkLoaded - Function to check if control is already loaded
-   * @param options.preLoad - Optional string identifier, array of strings, or function to wait for dependencies.
-   *                          String identifiers: 'sitna-control', 'tc', 'tc:propertyPath'
-   *                          Arrays wait for all identifiers in sequence.
+   * @param options.checkLoaded - Optional function to check if control is already loaded.
+   *                              Defaults to checking TC.control[controlName] if not provided.
+   * @param options.dependencies - Optional string identifier, array of strings, or function to wait for dependencies.
+   *                               Uses a registry pattern for extensibility. Built-in patterns:
+   *                               - 'SITNA.control': waits for SITNA.control.Control
+   *                               - 'TC': waits for TC namespace (includes core properties like apiLocation, syncLoadJS)
+   *                               Arrays wait for all identifiers in sequence.
+   *                               Subclasses can extend dependencyHandlers registry to add custom patterns.
    * @param options.loadScript - Function that performs the require() call.
    *                            IMPORTANT: The require() call inside the function must use a static string literal for webpack to analyze it.
    * @param options.controlName - Name of the control (used for caching and logging)
    * @returns Promise that resolves when the control is loaded
    */
   protected async ensureControlLoaded(options: {
-    checkLoaded: () => boolean | Promise<boolean>;
-    preLoad?: string | string[] | (() => Promise<void>);
+    checkLoaded?: () => boolean | Promise<boolean>;
+    dependencies?: string | string[] | (() => Promise<void>);
     loadScript: () => void;
     controlName: string;
   }): Promise<void> {
-    const { checkLoaded, preLoad, loadScript, controlName } = options;
+    const { checkLoaded, dependencies, loadScript, controlName } = options;
 
-    // Check if already loaded
-    const isLoaded = await checkLoaded();
+    // Check if already loaded (use default check if not provided)
+    const checkFunction = checkLoaded ?? (() => this.isTCControlRegistered(controlName));
+    const isLoaded = await checkFunction();
     if (isLoaded) {
       return;
     }
@@ -362,9 +414,9 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
     // Create and cache the loading promise
     const loadPromise = (async () => {
       try {
-        // Wait for pre-load dependencies if provided
-        if (preLoad) {
-          await this.resolvePreLoad(preLoad)();
+        // Wait for dependencies if provided
+        if (dependencies) {
+          await this.resolveDependencies(dependencies)();
         }
 
         // Load the script
@@ -372,68 +424,6 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
         this.logger.warn(`${controlName} script loaded`);
       } catch (error) {
         this.logger.error(`${controlName} script failed to load`, error);
-        // Remove from cache on error so it can be retried
-        this.controlLoadPromises.delete(controlName);
-        throw error;
-      }
-    })();
-
-    this.controlLoadPromises.set(controlName, loadPromise);
-    return loadPromise;
-  }
-
-  /**
-   * Ensure multiple scripts are loaded sequentially, with promise caching to prevent duplicate loads.
-   * This method standardizes the common pattern of loading multiple related scripts.
-   *
-   * @param options - Configuration options for loading the scripts
-   * @param options.checkLoaded - Optional function to check if scripts are already loaded
-   * @param options.preLoad - Optional string identifier, array of strings, or function to wait for dependencies.
-   *                          String identifiers: 'sitna-control', 'tc', 'tc:propertyPath'
-   *                          Arrays wait for all identifiers in sequence.
-   * @param options.loadScripts - Array of functions that perform require() calls.
-   *                              IMPORTANT: The require() calls inside the functions must use static string literals for webpack to analyze them.
-   * @param options.controlName - Name of the control/feature (used for caching and logging)
-   * @returns Promise that resolves when all scripts are loaded
-   */
-  protected async ensureScriptsLoaded(options: {
-    checkLoaded?: () => boolean | Promise<boolean>;
-    preLoad?: string | string[] | (() => Promise<void>);
-    loadScripts: Array<() => void>;
-    controlName: string;
-  }): Promise<void> {
-    const { checkLoaded, preLoad, loadScripts, controlName } = options;
-
-    // Check if already loaded (if check function provided)
-    if (checkLoaded) {
-      const isLoaded = await checkLoaded();
-      if (isLoaded) {
-        return;
-      }
-    }
-
-    // Return cached promise if loading is in progress
-    const cachedPromise = this.controlLoadPromises.get(controlName);
-    if (cachedPromise) {
-      return cachedPromise;
-    }
-
-    // Create and cache the loading promise
-    const loadPromise = (async () => {
-      try {
-        // Wait for pre-load dependencies if provided
-        if (preLoad) {
-          await this.resolvePreLoad(preLoad)();
-        }
-
-        // Load scripts sequentially
-        for (const loadScript of loadScripts) {
-          loadScript();
-        }
-
-        this.logger.warn(`${controlName} scripts loaded successfully`);
-      } catch (error) {
-        this.logger.error(`${controlName} scripts failed to load`, error);
         // Remove from cache on error so it can be retried
         this.controlLoadPromises.delete(controlName);
         throw error;
@@ -504,36 +494,6 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Wait for TC namespace and optionally wait for specific properties to become available.
-   * This helper standardizes the common pattern of waiting for TC and its properties.
-   *
-   * @param propertyPaths - Optional array of property paths to wait for (e.g., ['apiLocation', 'syncLoadJS'])
-   * @param maxRetries - Maximum number of retry attempts for each wait operation (default: 50)
-   * @param delayMs - Delay between retries in milliseconds (default: 100)
-   * @returns Promise that resolves with the TC namespace
-   * @throws Error if TC or any property is not available after retries
-   */
-  protected async waitForTCWithProperties(
-    propertyPaths?: string[],
-    maxRetries: number = 50,
-    delayMs: number = 100
-  ): Promise<TCNamespace> {
-    const TC = await this.tcNamespaceService.waitForTC(maxRetries, delayMs);
-
-    if (propertyPaths) {
-      for (const propertyPath of propertyPaths) {
-        await this.tcNamespaceService.waitForTCProperty(
-          propertyPath,
-          maxRetries,
-          delayMs
-        );
-      }
-    }
-
-    return TC;
-  }
-
-  /**
    * Set a global variable with the TC-wrapped map instance from the current map container.
    * This is useful for scenarios where patches or external scripts need access to the internal TC map instance.
    *
@@ -577,92 +537,6 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
 
     this.runInZoneHelper(() => {});
     return false;
-  }
-
-  /**
-   * Inject CSS styles from assets into the component's view container.
-   * This method loads CSS content from the assets directory and injects it as a <style> element
-   * scoped to the component. Useful for scenarios that need to inject CSS dynamically instead of
-   * using ::ng-deep in component stylesheets.
-   *
-   * The injected style element is tracked and automatically removed in ngOnDestroy.
-   *
-   * @param cssPath - Path to the CSS file in assets (e.g., '/assets/scenarios/my-scenario/css/styles.css')
-   * @param scenarioName - Optional scenario identifier for tracking. Defaults to this.metadata.route
-   * @returns Promise that resolves when styles are injected
-   * @throws Error if CSS file cannot be loaded
-   *
-   * @example
-   * ```typescript
-   * await this.injectStylesFromAssets(
-   *   '/assets/scenarios/my-scenario/css/custom.css',
-   *   'my-scenario'
-   * );
-   * ```
-   */
-  protected async injectStylesFromAssets(
-    cssPath: string,
-    scenarioName?: string
-  ): Promise<void> {
-    const key = scenarioName || this.metadata.route;
-
-    // Check if already injected
-    if (this.injectedStyleElements.has(key)) {
-      return; // Already injected
-    }
-
-    try {
-      // Load CSS content from assets
-      const cssContent = await firstValueFrom(
-        this.http.get(cssPath, { responseType: 'text' })
-      );
-
-      // Create style element
-      const styleElement = document.createElement('style');
-      styleElement.textContent = cssContent;
-      styleElement.setAttribute('data-scenario', key);
-      styleElement.setAttribute('data-injected-at', new Date().toISOString());
-
-      // Append to component's native element (scoped to component view container)
-      this.elementRef.nativeElement.appendChild(styleElement);
-      this.injectedStyleElements.set(key, styleElement);
-
-      // Log success with verification info
-      this.logger.warn(`Injected CSS styles from ${cssPath} into component view container`, {
-        styleElementId: styleElement.getAttribute('data-scenario'),
-        cssLength: cssContent.length,
-        cssPath,
-        parentElement: this.elementRef.nativeElement.tagName,
-        parentId: this.elementRef.nativeElement.id || 'no-id',
-        verification: `Check browser DevTools: Elements tab -> look for <style data-scenario="${key}">`,
-      });
-
-      // Verify injection by checking if style element is actually in the component's native element
-      // Use setTimeout to allow DOM to update, then verify
-      setTimeout(() => {
-        const isInComponent = this.elementRef.nativeElement.contains(styleElement);
-        const foundInDocument = document.querySelector(`style[data-scenario="${key}"]`);
-
-        if (isInComponent && foundInDocument) {
-          this.logger.warn('Style injection verified: <style> element found in component and document');
-        } else if (isInComponent) {
-          this.logger.warn('Style injection verified: <style> element found in component (may not be queryable via document.querySelector)');
-        } else {
-          this.logger.error('Style injection verification failed: <style> element not found in component', {
-            isInComponent,
-            foundInDocument: !!foundInDocument,
-            styleElementParent: styleElement.parentElement?.tagName,
-          });
-        }
-      }, 0);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to inject CSS styles from ${cssPath}`, {
-        error: errorMessage,
-        cssPath,
-      });
-      throw error;
-    }
   }
 
   /**
@@ -742,10 +616,14 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
    * @param options - Configuration options
    * @param options.scenarioConfig - The scenario configuration object
    * @param options.controlName - Name of the control (used for caching and logging)
-   * @param options.checkLoaded - Function to check if control is already loaded
-   * @param options.preLoad - Optional string identifier, array of strings, or function to wait for dependencies.
-   *                          String identifiers: 'sitna-control', 'tc', 'tc:propertyPath'
-   *                          Arrays wait for all identifiers in sequence.
+   * @param options.checkLoaded - Optional function to check if control is already loaded.
+   *                              Defaults to checking TC.control[controlName] if not provided.
+   * @param options.dependencies - Optional string identifier, array of strings, or function to wait for dependencies.
+   *                               Uses a registry pattern for extensibility. Built-in patterns:
+   *                               - 'SITNA.control': waits for SITNA.control.Control
+   *                               - 'TC': waits for TC namespace (includes core properties like apiLocation, syncLoadJS)
+   *                               Arrays wait for all identifiers in sequence.
+   *                               Subclasses can extend dependencyHandlers registry to add custom patterns.
    * @param options.loadScript - Function that performs the require() call.
    *                            IMPORTANT: The require() call inside the function must use a static string literal for webpack to analyze it.
    * @param options.addControl - Optional callback called after map is loaded (for logging or verification).
@@ -755,8 +633,8 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   protected initializeMapWithControl(options: {
     scenarioConfig: SitnaConfig;
     controlName: string;
-    checkLoaded: () => boolean | Promise<boolean>;
-    preLoad?: string | string[] | (() => Promise<void>);
+    checkLoaded?: () => boolean | Promise<boolean>;
+    dependencies?: string | string[] | (() => Promise<void>);
     loadScript: () => void;
     addControl?: (map: SitnaMap) => void | Promise<void>;
     mapOptions?: InitializeScenarioMapOptions;
@@ -765,7 +643,7 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
       scenarioConfig,
       controlName,
       checkLoaded,
-      preLoad,
+      dependencies,
       loadScript,
       addControl,
       mapOptions = {},
@@ -775,8 +653,8 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
     (async () => {
       try {
         await this.ensureControlLoaded({
-          checkLoaded,
-          preLoad,
+          checkLoaded: checkLoaded ?? (() => this.isTCControlRegistered(controlName)),
+          dependencies,
           loadScript,
           controlName,
         });

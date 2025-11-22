@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import type SitnaMap from 'api-sitna';
-import type { MapOptions } from 'api-sitna/TC/Map';
 import type { SitnaConfig } from '../../types/sitna.types';
 import type { InitializeScenarioMapOptions } from '../../types/service.types';
 import { SitnaConfigService } from './sitna-config.service';

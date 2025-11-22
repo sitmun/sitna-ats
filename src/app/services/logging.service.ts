@@ -36,20 +36,6 @@ export class LoggingService {
   }
 
   /**
-   * Get the current log level
-   */
-  getLogLevel(): LogLevel {
-    return this.currentLogLevel;
-  }
-
-  /**
-   * Set the log level (useful for runtime configuration)
-   */
-  setLogLevel(level: LogLevel): void {
-    this.currentLogLevel = level;
-  }
-
-  /**
    * Check if a log level should be output based on current configuration
    */
   private shouldLog(level: LogLevel): boolean {
@@ -87,23 +73,6 @@ export class LoggingService {
   error(message: string, ...optionalParams: unknown[]): void {
     if (this.shouldLog('error')) {
       console.error(message, ...optionalParams);
-    }
-  }
-
-  log(level: LogLevel, message: string, ...optionalParams: unknown[]): void {
-    switch (level) {
-      case 'debug':
-        this.debug(message, ...optionalParams);
-        break;
-      case 'info':
-        this.info(message, ...optionalParams);
-        break;
-      case 'warn':
-        this.warn(message, ...optionalParams);
-        break;
-      case 'error':
-        this.error(message, ...optionalParams);
-        break;
     }
   }
 }

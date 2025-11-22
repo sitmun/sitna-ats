@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../../types/sitna.types';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
 
@@ -27,13 +26,10 @@ export class FeatureInfoSilmeControlComponent extends BaseScenarioComponent {
   }
 
   protected override initializeMap(): void {
-    const scenarioConfig = scenarioConfigJson as SitnaConfig;
-
     this.initializeMapWithControl({
-      scenarioConfig,
+      scenarioConfig: scenarioConfigJson,
       controlName: 'FeatureInfoSilme',
-      checkLoaded: () => this.isTCControlRegistered('FeatureInfoSilme'),
-      preLoad: ['tc:apiLocation', 'tc:syncLoadJS'],
+      dependencies: 'TC', // TC core properties (apiLocation, syncLoadJS) are available when TC loads
       loadScript: () => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         require('./src/FeatureInfoSilme.js');

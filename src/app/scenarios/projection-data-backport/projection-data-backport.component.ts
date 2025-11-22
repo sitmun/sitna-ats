@@ -1,11 +1,9 @@
 import {
   Component,
-  inject,
 } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import scenarioConfigJson from './sitna-config.json';
 import type { ScenarioMetadata } from '../../types/scenario.types';
-import { BaseScenarioComponent } from '../base-scenario.component';
+import { BaseProjectionScenarioComponent } from '../shared/base-projection-scenario.component';
 import {
   patchFunction,
   patchProperty,
@@ -31,14 +29,7 @@ export const SCENARIO_METADATA: ScenarioMetadata = {
   templateUrl: './projection-data-backport.component.html',
   styleUrls: ['./projection-data-backport.component.scss'],
 })
-export class ProjectionDataBackportComponent extends BaseScenarioComponent {
-  epsgCode: string = '4326';
-  testResult: ProjectionData | false | null = null;
-  testError: string | null = null;
-  isLoading: boolean = false;
-  cachedCodes: string[] = [];
-
-  private readonly snackBar = inject(MatSnackBar);
+export class ProjectionDataBackportComponent extends BaseProjectionScenarioComponent {
 
   constructor() {
     super();
@@ -69,8 +60,7 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
   }
 
   private async applyBackportWithRetry(): Promise<void> {
-    const TC = await this.tcNamespaceService.waitForTC();
-    await this.applyBackport(TC);
+    await this.waitForTCAndApply((TC) => this.applyBackport(TC));
   }
 
   private async applyBackport(TC: NonNullable<ReturnType<typeof this.tcNamespaceService.getTC>>): Promise<void> {
@@ -104,7 +94,7 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
     this.logger.warn('Backported getProjectionData to TC namespace (replaced existing implementation)');
   }
 
-  testGetProjectionDataSync(): void {
+  override testGetProjectionDataSync(): void {
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
@@ -136,7 +126,7 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
     }
   }
 
-  async testGetProjectionDataAsync(): Promise<void> {
+  override async testGetProjectionDataAsync(): Promise<void> {
     this.isLoading = true;
     this.testResult = null;
     this.testError = null;
@@ -192,37 +182,13 @@ export class ProjectionDataBackportComponent extends BaseScenarioComponent {
     }
   }
 
-  updateCachedCodes(showNotification: boolean = false): void {
-    const previousCount = this.cachedCodes.length;
+  protected override getProjectionDataCache(): Record<string, ProjectionData> | undefined {
     const TC = this.tcNamespaceService.getTC();
-    const cache = TC?.['projectionDataCache'] as Record<string, ProjectionData> | undefined;
-    if (cache) {
-      this.cachedCodes = Object.keys(cache).sort();
-    } else {
-      this.cachedCodes = Object.keys(projectionDataCache).sort();
-    }
+    return (TC?.['projectionDataCache'] as Record<string, ProjectionData> | undefined) || projectionDataCache;
+  }
 
-    const newCount = this.cachedCodes.length;
-    const added = newCount - previousCount;
-
-    // Show feedback to user via snackbar only when explicitly requested (button click)
-    if (showNotification) {
-      let message: string;
-      if (added > 0) {
-        message = `Cache refreshed: ${added} new projection(s) added. Total: ${newCount}`;
-        this.snackBar.open(message, 'Close', { duration: 4000 });
-      } else if (previousCount === 0 && newCount > 0) {
-        message = `Cache loaded: ${newCount} projection(s) cached`;
-        this.snackBar.open(message, 'Close', { duration: 3000 });
-      } else {
-        message = `Cache refreshed: ${newCount} projection(s) (no changes)`;
-        this.snackBar.open(message, 'Close', { duration: 2500 });
-      }
-
-      this.logger.info(message);
-    }
-
-    this.runInZoneHelper(() => {});
+  protected override getFallbackCacheKeys(): string[] {
+    return Object.keys(projectionDataCache).sort();
   }
 
 }

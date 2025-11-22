@@ -30,7 +30,6 @@ This scenario demonstrates how to create a custom SITNA control in **api-sitna v
 
 **Impact:**
 - Control script fails to load
-- Custom element registration fails
 - Control never appears in the map
 
 **Resolution:**
@@ -44,13 +43,20 @@ This scenario demonstrates how to create a custom SITNA control in **api-sitna v
 **Issue:** Tutorial references `layout/ctl-container` with generic slots (`slot1`, `slot2`), but the default `responsive` layout uses specific slot IDs (`tc-slot-search`, `tc-slot-bms`, etc.).
 
 **Impact:**
+
 - Control cannot be injected into non-existent slots
 - Layout must be customized or slots must be added
 
 **Resolution:**
-- Use existing layout that exposes a generic/custom slot
-- Add custom slot (`tc-slot-hello-world`) to target layout
-- Configure scenario to use custom layout path
+
+- Create minimal custom layout with custom slot (`tc-slot-hello-world`)
+- Use custom layout path in config: `"layout": "js/api-sitna/layout/hello-world-control"`
+- Layout must include:
+  - `markup.html` - Panel markup with slot and Handlebars template variables (e.g., `{{tools}}`)
+  - `style.css` - Control styles (imports responsive styles via `@import url('../responsive/style.css')`)
+  - `config.json` - Must include `"i18n": true` to enable template variable processing
+  - `resources/` - i18n translation files (`en-US.json`, `es-ES.json`, `eu-ES.json`) for template variables
+  - `script.js` - Panel interaction handlers (e.g., toggle panel on h1 click)
 - Update webpack to copy custom layout to build output
 
 ### 4. Missing UI Components
@@ -94,7 +100,63 @@ This scenario demonstrates how to create a custom SITNA control in **api-sitna v
 - Append only the control-specific selectors (e.g., `.tc-ctl-hello-world__*`).
 - Document this pattern so future scenarios avoid unnecessary duplication.
 
-### 7. Auto-Instantiation via TC.control Registration
+### 9. Layout Template Variables and i18n
+
+**Issue:** Layout markup files can use Handlebars template variables (e.g., `{{tools}}`), but these require proper configuration to be processed.
+
+**Impact:**
+
+- Template variables like `{{tools}}` appear as literal text instead of translated values
+- Panel labels are not translated
+- Layout appears broken or unprofessional
+
+**Resolution:**
+
+- Add `config.json` with `"i18n": true` to enable template variable processing
+- Create `resources/` folder with i18n JSON files:
+  - `en-US.json` - English translations
+  - `es-ES.json` - Spanish translations
+  - `eu-ES.json` - Basque translations
+- Each resource file must contain keys matching template variables (e.g., `{"tools": "Tools"}`)
+- SITNA automatically loads the appropriate language file based on map configuration
+
+### 10. Layout Panel Interactions
+
+**Issue:** Custom layouts with slide panels need JavaScript to handle panel open/close interactions.
+
+**Impact:**
+
+- Panels cannot be toggled open/closed
+- User cannot interact with controls in the panel
+- Layout appears non-functional
+
+**Resolution:**
+
+- Include `script.js` in the layout folder
+- Implement minimal panel toggle handler:
+
+  ```javascript
+  // Toggle panel collapse on h1 click
+  panelTab.addEventListener(SITNA.Consts.event.CLICK, function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toolsPanel.classList.toggle(rcollapsedClass);
+  });
+  ```
+
+- Script runs automatically when layout is loaded by SITNA
+
+### 7. Minimal Control Registration
+
+**Key Insight:** For auto-instantiation, only `TC.control.ControlName` registration is needed. Additional registrations are unnecessary.
+
+**Benefits:**
+
+- Simpler, cleaner code
+- Follows SITNA's standard auto-instantiation pattern
+- No unnecessary global namespace pollution
+
+### 8. Auto-Instantiation via TC.control Registration
 
 **Key Insight:** Controls registered in the `TC.control` namespace can be auto-instantiated by SITNA from the standard `"controls"` configuration.
 
@@ -139,12 +201,13 @@ this.initializeMapWithControl({
 
 | Aspect | Manual Addition (Old) | Auto-Instantiation (Current) |
 |--------|----------------------|------------------------------|
-| **Registration** | `window.HelloWorldControl` only | `TC.control.HelloWorld` |
+| **Registration** | `window.HelloWorldControl` or `customElements.define()` | `TC.control.HelloWorld` only |
 | **Config Format** | Custom property: `"helloWorldControl": {...}` | Standard: `"controls": { "helloWorld": {...} }` |
-| **Load Timing** | `loadBeforeMap: false` | `loadBeforeMap: true` |
-| **Component Code** | Manual `map.addControl(instance)` | No-op logger (SITNA handles it) |
+| **Load Timing** | After map loaded | Before map initialization |
+| **Component Code** | Manual `map.addControl(instance)` | Auto-instantiated by SITNA from config |
 
 **Benefits of Auto-Instantiation:**
+
 - ✅ Consistent with standard SITNA control patterns
 - ✅ No manual instantiation code needed
 - ✅ Control configuration in one place (config file)
@@ -161,7 +224,7 @@ this.initializeMapWithControl({
 | **UI Components** | ❌ No web components | ✅ `<sitna-button>`, `<sitna-toggle>`, `<sitna-tab>` |
 | **Layout Slots** | `tc-slot-*` IDs in responsive layout | Generic `slot1`, `slot2` in ctl-container |
 | **Template Loading** | Handlebars via `TC.ajax()` | Handlebars via `TC.ajax()` (same) |
-| **Control Registration** | `customElements.define()` optional | `customElements.define()` recommended |
+| **Control Registration** | `TC.control.ControlName` only (auto-instantiation) | `customElements.define()` recommended |
 | **DOM Access** | `this.div.querySelector()` | `this.querySelector()` (if web component) |
 
 ---
@@ -169,11 +232,13 @@ this.initializeMapWithControl({
 ## Recommended Workflow for 4.1.0
 
 1. **Wait for Map Initialization**
+
    ```typescript
    this.map.loaded().then(() => this.onMapLoaded());
    ```
 
 2. **Ensure TC.Control is Available**
+
    ```typescript
    private async waitForSitnaControl(): Promise<void> {
      // Check for TC.Control with retry logic
@@ -182,16 +247,15 @@ this.initializeMapWithControl({
    ```
 
 3. **Load Control Script**
+
    ```typescript
    await this.waitForSitnaControl();
    require('./src/HelloWorldControl.js');
    ```
 
-4. **Create and Inject Control**
-   ```typescript
-   const controlInstance = new HelloWorldControl('tc-slot-hello-world');
-   map.addControl(controlInstance);
-   ```
+4. **Control Auto-Instantiation**
+   - Control is automatically instantiated by SITNA from config
+   - No manual `map.addControl()` needed
 
 5. **Use Native HTML + Custom CSS**
    - Replace `<sitna-button>` with `<button>`
@@ -204,10 +268,10 @@ this.initializeMapWithControl({
 
 ### Control Not Appearing
 
-- ✅ Check that `map.loaded()` has resolved
 - ✅ Verify `TC.Control` is available before loading script
 - ✅ Ensure slot ID exists in layout markup
-- ✅ Confirm control is added via `map.addControl()`
+- ✅ Confirm control is registered as `TC.control.HelloWorld`
+- ✅ Check that control config is in `sitna-config.json` under `"controls"`
 
 ### Script Loading Errors
 
@@ -231,8 +295,14 @@ Creating custom controls in SITNA 4.1.0 requires adapting 4.8.0 tutorial pattern
 - ✅ Proper bootstrap timing (wait for map + TC namespace)
 - ✅ Namespace aliasing (`TC.Control` → `SITNA.control.Control`)
 - ✅ Native HTML elements instead of web components
-- ✅ Custom layout slots or existing `tc-slot-*` IDs
-- ✅ Scenario-specific CSS for styling
+- ✅ Custom layout with minimal required files:
+  - `markup.html` - Panel structure with slot
+  - `style.css` - Styles (imports responsive styles)
+  - `config.json` - i18n configuration
+  - `resources/` - Translation files
+  - `script.js` - Panel interaction handlers
+- ✅ Minimal control registration (`TC.control.ControlName` only)
+- ✅ Auto-instantiation via TC.control namespace
 
-The Hello World control demonstrates all these patterns working together in a functional example.
+The Hello World control demonstrates all these patterns working together in a minimal, functional example.
 

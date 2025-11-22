@@ -1,11 +1,10 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import scenarioConfigJson from './sitna-config.json';
-import type { SitnaConfig } from '../../../types/sitna.types';
 import type { ScenarioMetadata } from '../../types/scenario.types';
 import { BaseScenarioComponent } from '../base-scenario.component';
 
 export const SCENARIO_METADATA: ScenarioMetadata = {
-  name: 'SITNA 4.1 Custom Control',
+  name: 'SITNA 4.1 Custom Control - Hello World',
   description:
     'Tutorial scenario showing how to register a Hello World control in SITNA 4.1 using Angular + Handlebars.',
   tags: ['sitna-4.1', 'controls', 'tutorial'],
@@ -25,13 +24,10 @@ export class HelloWorldControlComponent extends BaseScenarioComponent {
   }
 
   protected override initializeMap(): void {
-    const scenarioConfig = scenarioConfigJson as SitnaConfig;
-
     this.initializeMapWithControl({
-      scenarioConfig,
+      scenarioConfig: scenarioConfigJson,
       controlName: 'HelloWorld',
-      checkLoaded: () => this.isTCControlRegistered('HelloWorld'),
-      preLoad: 'sitna-control',
+      dependencies: 'SITNA.control',
       loadScript: () => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         require('./src/HelloWorldControl.js');

@@ -71,14 +71,6 @@
 
   // Register in TC.control namespace for SITNA auto-instantiation
   TC.control.HelloWorld = HelloWorldControl;
-
-  // Also register on window for backward compatibility
-  window.HelloWorldControl = HelloWorldControl;
-
-  // Register as custom element (optional, for web component usage)
-  if (!customElements.get('hello-world-control')) {
-    customElements.define('hello-world-control', HelloWorldControl);
-  }
 })();
 
 
