@@ -10,7 +10,7 @@ var ajustarPanell = function () {
   var arbolElm = document.getElementById('arbol');
   var mapaElm = document.getElementById('mapa');
   var toolsPanelElm = document.getElementById('tools-panel');
-  var toolsPanelElmContent = toolsPanelElm && toolsPanelElm.querySelector
+  var toolsPanelElmContent = toolsPanelElm
     ? toolsPanelElm.querySelector('.panel-content')
     : null;
   var bmsElmTree = document.querySelector('.tc-ctl-bms-tree');
@@ -156,35 +156,19 @@ var ajustarPanellSilme = function () {
 }
 
 function amagaPanellEsquerra() {
-  const silmePanel = document.querySelector('#silme-panel');
-  const toolsPanel = document.querySelector('#tools-panel');
-  if (silmePanel) {
-    silmePanel.classList.remove('left-collapsed-silme');
-    silmePanel.classList.add('left-collapsed');
-  }
-  if (toolsPanel) {
-    toolsPanel.classList.remove("right-opacity");
-  }
+  document.querySelector('#silme-panel').classList.remove('left-collapsed-silme');
+  document.querySelector('#silme-panel').classList.add('left-collapsed');
+  document.querySelector('#tools-panel').classList.remove("right-opacity");
 
-  const legendTab = document.querySelector("#legend-tab");
-  const ovmapTab = document.querySelector("#ovmap-tab");
-  const silmeTab = document.querySelector("#silme-tab");
-  const nav = document.querySelector("#nav");
-  const birdEye = document.querySelector("#BirdEye");
-  const fuScreen = document.querySelector("#FuScreen");
-  const navHome = document.querySelector(".tc-ctl-nav-home");
-  const sv = document.querySelector(".tc-ctl-sv");
-  if (legendTab) legendTab.style.visibility = "visible";
-  if (ovmapTab) ovmapTab.style.visibility = "visible";
-  if (silmeTab) silmeTab.style.visibility = "visible";
-  if (nav) nav.style.visibility = "visible";
-  if (birdEye) birdEye.style.visibility = "visible";
-  if (fuScreen) fuScreen.style.visibility = "visible";
-  if (navHome) navHome.style.visibility = "visible";
-  if (sv) {
-    sv.style.visibility = "visible";
-    sv.style.left = getCssProperty('nav', 'left');
-  }
+  document.querySelector("#legend-tab").style.visibility = "visible";
+  document.querySelector("#ovmap-tab").style.visibility = "visible";
+  document.querySelector("#silme-tab").style.visibility = "visible";
+  document.querySelector("#nav").style.visibility = "visible";
+  document.querySelector("#BirdEye").style.visibility = "visible";
+  document.querySelector("#FuScreen").style.visibility = "visible";
+  document.querySelector(".tc-ctl-nav-home").style.visibility = "visible";
+  document.querySelector(".tc-ctl-sv").style.visibility = "visible";
+  document.querySelector(".tc-ctl-sv").style.left = getCssProperty('nav', 'left');
 
   if (document.querySelector('.tc-ctl-sb'))
     document.querySelector('.tc-ctl-sb').style.visibility = 'visible';

@@ -6,28 +6,39 @@ This directory contains scripts for synchronizing files from external GitHub rep
 
 ### Sync Basemap Selector Silme Control
 
-Sync files from the `dev` branch:
+Sync files from the `dev` branch (default):
+
 ```bash
-npm run sync:basemap-selector-silme
+npm run sync:basemap-selector-silme-control
+```
+
+Or explicitly specify the `dev` branch:
+
+```bash
+npm run sync:basemap-selector-silme-control:dev
 ```
 
 Sync files from the `main` branch:
+
 ```bash
-npm run sync:basemap-selector-silme:main
+npm run sync:basemap-selector-silme-control:main
 ```
 
 ### Direct Script Usage
 
 You can also run the script directly:
+
 ```bash
 node scripts/sync-github-files.js <scenario-name> [branch]
 ```
 
 **Parameters:**
+
 - `scenario-name`: Name of the scenario to sync (e.g., `basemap-selector-silme-control`)
 - `branch`: GitHub branch name (default: `dev`)
 
 **Example:**
+
 ```bash
 node scripts/sync-github-files.js basemap-selector-silme-control dev
 ```
@@ -35,6 +46,7 @@ node scripts/sync-github-files.js basemap-selector-silme-control dev
 ## How It Works
 
 The sync script:
+
 1. Fetches files from `https://github.com/sitmun/sitmun-viewer-app` repository
 2. Downloads files from the specified branch's `src/assets/js/patch` directory
 3. Copies them to the corresponding local scenario directory
@@ -67,6 +79,7 @@ Then add corresponding npm scripts to `package.json`:
 ## Source Repository
 
 Files are synced from:
+
 - **Repository**: [sitmun/sitmun-viewer-app](https://github.com/sitmun/sitmun-viewer-app)
 - **Default Branch**: `dev`
 - **Source Path**: `src/assets/js/patch`
@@ -77,4 +90,3 @@ Files are synced from:
 - Always review changes after syncing
 - Consider committing changes before syncing to preserve local modifications
 - The script uses GitHub's raw content API (no authentication required for public repos)
-

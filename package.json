@@ -16,8 +16,8 @@
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "lint:html": "eslint \"src/**/*.html\"",
-    "sync:basemap-selector-silme-control": "node scripts/sync-github-files.js basemap-selector-silme-control",
-    "sync:basemap-selector-silme-control:dev": "node scripts/sync-github-files.js basemap-selector-silme-control dev"
+    "sync:basemap-selector-silme-control:dev": "node scripts/sync-github-files.js basemap-selector-silme-control dev",
+    "sync:basemap-selector-silme-control:main": "node scripts/sync-github-files.js basemap-selector-silme-control main"
   },
   "private": true,
   "dependencies": {

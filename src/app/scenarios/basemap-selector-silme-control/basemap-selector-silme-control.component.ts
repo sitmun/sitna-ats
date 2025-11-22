@@ -49,6 +49,10 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
             controlName: 'BasemapSelectorSilme',
           });
         },
+        async () => {
+          // Patch template paths after control is loaded
+          await this.patchTemplatePaths();
+        },
         () => this.applyPatchWithRetry(),
       ],
       scenarioConfig: scenarioConfigJson,
@@ -62,6 +66,43 @@ export class BasemapSelectorSilmeControlComponent extends BaseScenarioComponent 
     });
   }
 
+
+  /**
+   * Patch template paths in BasemapSelectorSilme after the control is loaded.
+   * This overrides the template paths set in the synced file from GitHub,
+   * ensuring they point to the correct location in the built application.
+   */
+  private async patchTemplatePaths(): Promise<void> {
+    await this.waitForTCAndApply(async (TC) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const BasemapSelectorSilme = (TC.control as any)['BasemapSelectorSilme'];
+      if (!BasemapSelectorSilme) {
+        this.logger.warn('BasemapSelectorSilme not found, skipping template path patch');
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ctlProto = BasemapSelectorSilme.prototype as any;
+      const originalLoadTemplates = ctlProto.loadTemplates;
+
+      // Patch the loadTemplates method to set correct template paths
+      ctlProto.loadTemplates = async function() {
+        const _this = this;
+        await originalLoadTemplates.call(_this);
+
+        // Override template paths to match webpack build output structure
+        _this.template[_this.CLASS] = 'assets/js/patch/templates/basemap-selector-silme-control/BasemapSelectorSilme.hbs';
+        _this.template[_this.CLASS + '-node'] = 'assets/js/patch/templates/basemap-selector-silme-control/BasemapSelectorNodeSilme.hbs';
+      };
+
+      // Store restore function for cleanup
+      this.patchManager.add(() => {
+        ctlProto.loadTemplates = originalLoadTemplates;
+      });
+
+      this.logger.debug('Patched BasemapSelectorSilme template paths');
+    });
+  }
 
   private async applyPatchWithRetry(): Promise<void> {
     await this.waitForTCAndApply(async (TC) => {
