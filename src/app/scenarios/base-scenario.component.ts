@@ -17,54 +17,9 @@ import { ScenarioMapService, type InitializeScenarioMapOptions } from '../servic
 import { TCNamespaceService } from '../services/tc-namespace.service';
 import { SitnaNamespaceService } from '../services/sitna-namespace.service';
 import { runInZone } from '../utils/zone-helpers';
+import { createPatchManager, type PatchManager } from '../utils/patch-manager';
 import type { SitnaConfig } from '../../types/sitna.types';
 import type { ScenarioMetadata } from '../types/scenario.types';
-
-/**
- * Unified patch manager interface that supports both single restore functions
- * (from createPatchManager) and arrays of restore functions (from meld patches).
- */
-interface UnifiedPatchManager {
-  add: (restore: (() => void) | Array<() => void>) => void;
-  restoreAll: () => void;
-  clear: () => void;
-};
-
-/**
- * Create a unified patch manager that supports both single restore functions
- * and arrays of restore functions.
- */
-function createUnifiedPatchManager(): UnifiedPatchManager {
-  const patches: Array<() => void> = [];
-
-  return {
-    add: (restore: (() => void) | Array<() => void>): void => {
-      if (Array.isArray(restore)) {
-        // Array of restore functions (from meld patches)
-        patches.push(...restore);
-      } else {
-        // Single restore function (from monkey patches)
-        patches.push(restore);
-      }
-    },
-    restoreAll: (): void => {
-      patches.forEach((restore) => {
-        try {
-          restore();
-        } catch (error: unknown) {
-          // Direct console usage is intentional: This utility may be called during cleanup
-          // before Angular services are available or after they've been destroyed.
-          // eslint-disable-next-line no-console
-          console.error('Error restoring patch:', error);
-        }
-      });
-      patches.length = 0;
-    },
-    clear: (): void => {
-      patches.length = 0;
-    },
-  };
-}
 
 /**
  * Base class for scenario components that provides common functionality:
@@ -98,11 +53,10 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
 
   /**
    * Patch manager for AOP patches applied to SITNA/TC methods.
-   * Supports both single restore functions (from createPatchManager) and
-   * arrays of restore functions (from meld patches).
+   * Supports both single restore functions and arrays of restore functions.
    * Automatically restored in ngOnDestroy.
    */
-  protected readonly patchManager = createUnifiedPatchManager();
+  protected readonly patchManager: PatchManager = createPatchManager();
 
   /**
    * Cache for control/script loading promises to prevent duplicate loads.
@@ -244,6 +198,120 @@ export abstract class BaseScenarioComponent implements OnInit, OnDestroy {
   ): Promise<void> {
     const TC = await this.tcNamespaceService.waitForTC();
     await callback(TC);
+  }
+
+  /**
+   * Patch control template paths to point to correct webpack build output locations.
+   * This is a reusable helper for scenarios that need to override template paths
+   * in custom controls that extend SITNA controls.
+   *
+   * @param options - Configuration options
+   * @param options.controlName - Name of the control (e.g., 'LayerCatalogSilmeFolders', 'BasemapSelectorSilme')
+   * @param options.templatePaths - Map of template suffixes to full paths
+   *   Keys can be:
+   *   - '' (empty string) for main template (control.CLASS)
+   *   - '-node', '-branch', '-info', etc. for suffixed templates (control.CLASS + suffix)
+   * @param options.patchMethod - Method to patch: 'register' or 'loadTemplates'
+   *   - 'register': Patches the register method, applies templates before and after parent.register
+   *   - 'loadTemplates': Patches loadTemplates method, applies templates after original method
+   * @param options.parentControlName - Optional parent control name (for 'register' method only)
+   *   If provided, calls parent's register instead of control's register (e.g., 'LayerCatalog')
+   *
+   * @example
+   * ```typescript
+   * await this.patchControlTemplatePaths({
+   *   controlName: 'BasemapSelectorSilme',
+   *   templatePaths: {
+   *     '': 'assets/js/patch/templates/basemap-selector-silme-control/BasemapSelectorSilme.hbs',
+   *     '-node': 'assets/js/patch/templates/basemap-selector-silme-control/BasemapSelectorNodeSilme.hbs'
+   *   },
+   *   patchMethod: 'loadTemplates'
+   * });
+   * ```
+   */
+  protected async patchControlTemplatePaths(options: {
+    controlName: string;
+    templatePaths: Record<string, string>;
+    patchMethod: 'register' | 'loadTemplates';
+    parentControlName?: string;
+  }): Promise<void> {
+    const { controlName, templatePaths, patchMethod, parentControlName } = options;
+
+    await this.waitForTCAndApply(async (TC) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Control = (TC.control as any)[controlName];
+      if (!Control) {
+        this.logger.warn(`${controlName} not found, skipping template path patch`);
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ctlProto = Control.prototype as any;
+
+      // Helper to apply template paths to a control instance
+      const applyTemplatePaths = (ctl: { template: Record<string, string>; CLASS: string }) => {
+        if (!ctl.template) {
+          ctl.template = {};
+        }
+        for (const [suffix, path] of Object.entries(templatePaths)) {
+          const key = suffix === '' ? ctl.CLASS : ctl.CLASS + suffix;
+          ctl.template[key] = path;
+        }
+      };
+
+      if (patchMethod === 'register') {
+        const originalRegister = ctlProto.register;
+        const originalRender = ctlProto.render;
+
+        ctlProto.register = function (map: unknown) {
+          const _ctl = this;
+
+          // Apply templates before calling parent register
+          applyTemplatePaths(_ctl);
+
+          // Call parent's register if parentControlName provided, otherwise call original
+          let result: unknown;
+          if (parentControlName) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result = (TC.control as any)[parentControlName].prototype.register.call(_ctl, map);
+          } else {
+            result = originalRegister.call(_ctl, map);
+          }
+
+          // Re-apply templates after parent register (in case it initialized template)
+          applyTemplatePaths(_ctl);
+
+          return result;
+        };
+
+        // Store restore function for cleanup
+        this.patchManager.add(() => {
+          ctlProto.register = originalRegister;
+          if (originalRender) {
+            ctlProto.render = originalRender;
+          }
+        });
+
+        this.logger.debug(`Patched ${controlName} template paths via register method`);
+      } else if (patchMethod === 'loadTemplates') {
+        const originalLoadTemplates = ctlProto.loadTemplates;
+
+        ctlProto.loadTemplates = async function () {
+          const _this = this;
+          await originalLoadTemplates.call(_this);
+
+          // Apply template paths after original loadTemplates
+          applyTemplatePaths(_this);
+        };
+
+        // Store restore function for cleanup
+        this.patchManager.add(() => {
+          ctlProto.loadTemplates = originalLoadTemplates;
+        });
+
+        this.logger.debug(`Patched ${controlName} template paths via loadTemplates method`);
+      }
+    });
   }
 
   /**

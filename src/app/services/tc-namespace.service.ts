@@ -21,7 +21,7 @@ export class TCNamespaceService {
   getTC(): TCNamespace | undefined {
     return (
       (window as { TC?: TCNamespace }).TC ||
-      (globalThis as { TC?: TCNamespace }).TC
+      (globalThis as unknown as { TC?: TCNamespace }).TC
     );
   }
 

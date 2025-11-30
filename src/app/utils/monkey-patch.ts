@@ -2,10 +2,13 @@
  * Safe monkey patching utilities for HTTP requests and API methods
  */
 
-import type { PatchRestore, PatchManager } from '../../types/patch.types';
+import type { PatchRestore } from '../../types/patch.types';
 
 // Re-export types for backward compatibility
-export type { PatchRestore, PatchManager } from '../../types/patch.types';
+export type { PatchRestore } from '../../types/patch.types';
+
+// Re-export unified patch manager
+export { createPatchManager, type PatchManager } from './patch-manager';
 
 /**
  * Patch window.fetch with restore capability
@@ -66,35 +69,6 @@ export function patchProperty<T>(
       } else {
         target[propertyName] = originalValue;
       }
-    },
-  };
-}
-
-/**
- * Create a patch manager to handle multiple patches
- */
-export function createPatchManager(): PatchManager {
-  const patches: Array<() => void> = [];
-
-  return {
-    add: (restore: () => void): void => {
-      patches.push(restore);
-    },
-    restoreAll: (): void => {
-      patches.forEach((restore) => {
-        try {
-          restore();
-        } catch (error: unknown) {
-          // Direct console usage is intentional: This utility may be called during cleanup
-          // before Angular services are available or after they've been destroyed.
-          // eslint-disable-next-line no-console
-          console.error('Error restoring patch:', error);
-        }
-      });
-      patches.length = 0;
-    },
-    clear: (): void => {
-      patches.length = 0;
     },
   };
 }

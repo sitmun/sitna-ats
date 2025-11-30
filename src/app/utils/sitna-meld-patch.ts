@@ -27,6 +27,9 @@ export type {
 } from '../../types/meld.types';
 export type { SitnaPatchConfig } from '../../types/patch.types';
 
+// Re-export unified patch manager (replaces createMeldPatchManager)
+export { createPatchManager, type PatchManager } from './patch-manager';
+
 /**
  * Patch specific SITNA.Map methods with custom behavior using meld AOP library.
  *
@@ -135,38 +138,13 @@ export function patchSitnaMapMethods(
 }
 
 /**
- * Create a patch manager for meld-based patches
+ * @deprecated Use createPatchManager() instead. This function is kept for backward compatibility.
+ * Will be removed in a future version.
  */
-export function createMeldPatchManager(): {
-  add: (restores: Array<() => void>) => void;
-  restoreAll: () => void;
-  clear: () => void;
-} {
-  const patches: Array<Array<() => void>> = [];
-
-  return {
-    add: (restores: Array<() => void>): void => {
-      patches.push(restores);
-    },
-    restoreAll: (): void => {
-      patches.forEach((restores) => {
-        restores.forEach((restore) => {
-          try {
-            restore();
-          } catch (error: unknown) {
-            // Direct console usage is intentional: This utility may be called during cleanup
-            // before Angular services are available or after they've been destroyed.
-            // eslint-disable-next-line no-console
-            console.error('Error restoring meld patch:', error);
-          }
-        });
-      });
-      patches.length = 0;
-    },
-    clear: (): void => {
-      patches.length = 0;
-    },
-  };
+export function createMeldPatchManager() {
+  // Import dynamically to avoid circular dependency
+  const { createPatchManager } = require('./patch-manager');
+  return createPatchManager();
 }
 
 /**

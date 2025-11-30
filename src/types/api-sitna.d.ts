@@ -74,7 +74,6 @@ declare module 'api-sitna/TC/Map' {
 declare module 'api-sitna/SITNA/layer/Layer' {
   export type { LayerOptions } from './api-sitna/SITNA/layer/Layer';
 }
-
 /**
  * Global type augmentations for Window object
  */
@@ -102,3 +101,4 @@ declare global {
     SITNA_BASE_URL?: string;
   }
 }
+

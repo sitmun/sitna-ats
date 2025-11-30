@@ -21,6 +21,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { AppComponent } from './app.component';
 import { SitnaMapComponent } from './components/sitna-map/sitna-map.component';
@@ -91,6 +92,7 @@ const routes: Routes = initializeRoutes();
     MatDividerModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
+    MatCheckboxModule,
     RouterModule.forRoot(routes, {
       // Use hash location strategy to prevent router from intercepting asset requests
       // URLs will be: http://localhost:4200/#/scenario-01 instead of http://localhost:4200/scenario-01
