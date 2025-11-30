@@ -1,0 +1,56 @@
+<mat-card class="scenario-container mat-typography">
+  <mat-card-header>
+    <mat-card-title>{{ metadata.name }}</mat-card-title>
+    <mat-card-subtitle>{{ metadata.description }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <p class="mat-body-1">
+      The map boots with the LayerCatalogSilmeFolders control that extends TC.control.LayerCatalog
+      with folder-based organization and custom Handlebars templates.
+    </p>
+
+    <div class="config-override-section">
+      <mat-card>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="url-input">
+            <mat-label>App Config URL</mat-label>
+            <input
+              matInput
+              [(ngModel)]="appConfigUrl"
+              placeholder="https://example.com/api/config"
+              (keydown.enter)="loadConfigFromUrl()"
+            />
+            <mat-hint>Enter a URL to override the default app-config.json</mat-hint>
+          </mat-form-field>
+
+          <div class="button-group">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="loadConfigFromUrl()"
+              [disabled]="isLoadingConfig || !appConfigUrl"
+            >
+              Load Configuration
+            </button>
+            <button
+              mat-button
+              (click)="resetToDefaultConfig()"
+              [disabled]="isLoadingConfig"
+            >
+              Reset to Default
+            </button>
+          </div>
+
+          <mat-progress-bar
+            *ngIf="isLoadingConfig"
+            mode="indeterminate"
+            class="loading-bar"
+          ></mat-progress-bar>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div id="mapa-layer-catalog-silme-folders-control" class="map-container"></div>
+  </mat-card-content>
+</mat-card>
+

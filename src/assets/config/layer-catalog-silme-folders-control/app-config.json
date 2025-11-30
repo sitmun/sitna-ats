@@ -1,0 +1,378 @@
+{
+  "application" : {
+    "id" : 15,
+    "name" : "Visor IDEBarcelona",
+    "title" : "Visor IDEBarcelona",
+    "type" : "I",
+    "theme" : "sitmun-base",
+    "srs" : "EPSG:25831",
+    "situation-map" : null,
+    "logo" : "https://sitmun.org/Documents/Imatges/8601img1320230421013907.jpg",
+    "description" : "Recopilación de los datos publicados por la diputación de Barcelona que cumplen con la Directiva Inspire",
+    "headerParams" : null,
+    "maintenanceInformation" : null,
+    "isUnavailable" : false,
+    "appPrivate" : false,
+    "lastUpdate" : "2025-10-18T15:07:08.176+00:00",
+    "creator" : null,
+    "defaultZoomLevel" : 10,
+    "pointOfInterest" : {
+      "x" : 418186.0,
+      "y" : 4623052.0
+    },
+    "initialExtent" : [ 363487.0, 4561229.0, 481617.0, 4686464.0 ]
+  },
+  "backgrounds" : [ {
+    "id" : "group/198",
+    "title" : "Mapes de fons Barcelona",
+    "thumbnail" : null
+  } ],
+  "groups" : [ {
+    "id" : "group/198",
+    "title" : "Mapes de fons Barcelona",
+    "layers" : [ "layer/4631" ]
+  } ],
+  "layers" : [ {
+    "id" : "layer/4623",
+    "title" : "CAE1M (Guia de carrers) - Carrers (fons fosc)",
+    "layers" : [ "CAE1M_112L_FF" ],
+    "service" : "service/166"
+  }, {
+    "id" : "layer/4624",
+    "title" : "CAE1M (Guia de carrers) - Illes urbanes",
+    "layers" : [ "CAE1M_141A" ],
+    "service" : "service/166"
+  }, {
+    "id" : "layer/4625",
+    "title" : "CAE1M (Guia de carrers) - Portals (fons fosc)",
+    "layers" : [ "CAE1M_122P_FF" ],
+    "service" : "service/166"
+  }, {
+    "id" : "layer/4629",
+    "title" : "CAE1M (Guia de carrers) - Edificis (fons fosc)",
+    "layers" : [ "CAE1M_123P_FF" ],
+    "service" : "service/166"
+  }, {
+    "id" : "layer/4631",
+    "title" : "Capes ortofotografiques",
+    "layers" : [ "orto" ],
+    "service" : "service/167"
+  }, {
+    "id" : "layer/4643",
+    "title" : "Municipis a escala 50000",
+    "layers" : [ "divisions_administratives_municipis_50000" ],
+    "service" : "service/168"
+  } ],
+  "services" : [ {
+    "id" : "service/166",
+    "url" : "https://sitmun.diba.cat/wms/servlet/CAE1M",
+    "type" : "WMS",
+    "isProxied" : false,
+    "parameters" : { }
+  }, {
+    "id" : "service/167",
+    "url" : "https://geoserveis.icgc.cat/map/bases/service?",
+    "type" : "WMS",
+    "isProxied" : false,
+    "parameters" : { }
+  }, {
+    "id" : "service/168",
+    "url" : "https://geoserveis.icgc.cat/servei/catalunya/divisions-administratives/wms",
+    "type" : "WMS",
+    "isProxied" : false,
+    "parameters" : { }
+  } ],
+  "tasks" : [ {
+    "id" : "task/2",
+    "ui-control" : "sitna.basemapSelector",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/3",
+    "ui-control" : "sitna.click",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/4",
+    "ui-control" : "sitna.coordinates",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/6",
+    "ui-control" : "sitna.download",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/8",
+    "ui-control" : "sitna.featureInfo",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/9",
+    "ui-control" : "sitna.fullScreen",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/11",
+    "ui-control" : "sitna.layerCatalog",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/12",
+    "ui-control" : "sitna.legend",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/13",
+    "ui-control" : "sitna.loadingIndicator",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/14",
+    "ui-control" : "sitna.measure",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/17",
+    "ui-control" : "sitna.offlineMapMaker",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/18",
+    "ui-control" : "sitna.overviewMap",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/19",
+    "ui-control" : "sitna.popup",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/25",
+    "ui-control" : "sitna.share",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/26",
+    "ui-control" : "sitna.streetView",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/31",
+    "ui-control" : "sitna.workLayerManager",
+    "type" : null,
+    "parameters" : { }
+  }, {
+    "id" : "task/24",
+    "ui-control" : "sitna.search",
+    "type" : null,
+    "parameters" : {
+      "placename" : {
+        "url" : "https://ide.cime.es/geoserver2/base_referencia/wfs",
+        "featurePrefix" : "base_referencia",
+        "geometryName" : "the_geom",
+        "featureType" : "re007top_nomenclator_aux",
+        "dataIdProperty" : [ "gid" ],
+        "queryProperties" : {
+          "firstQueryWord" : [ "nom", "dstipus", "dsmun", "cerca" ]
+        },
+        "suggestionListHead" : {
+          "label" : "search.list.placename",
+          "color" : "strokeColor"
+        },
+        "outputProperties" : [ "nom", "dstipus", "dsmun", "gid" ],
+        "outputFormat" : "JSON",
+        "outputFormatLabel" : "{0} ({1}) - {2}",
+        "searchWeight" : 7,
+        "styles" : [ {
+          "point" : {
+            "radius" : 0,
+            "label" : "nom",
+            "fontColor" : "#CB0000",
+            "fontSize" : 14,
+            "labelOutlineColor" : "#FFFFFF",
+            "labelOutlineWidth" : 4
+          }
+        } ]
+      }
+    }
+  }, {
+    "id" : "task/7",
+    "ui-control" : "sitna.drawMeasureModify",
+    "type" : null
+  }, {
+    "id" : "task/5",
+    "ui-control" : "sitna.dataLoader",
+    "type" : null,
+    "parameters" : {
+      "wmsSuggestions" : [ {
+        "group" : "Nacional",
+        "items" : [ {
+          "name" : "Mapa Base (IGN)",
+          "url" : "www.ign.es/wms-inspire/ign-base"
+        }, {
+          "name" : "Unidades Administrativas (IGN)",
+          "url" : "www.ign.es/wms-inspire/unidades-administrativas"
+        }, {
+          "name" : "Cartografía Topográfica (IGN)",
+          "url" : "www.ign.es/wms-inspire/mapa-raster"
+        }, {
+          "name" : "Ortofotos PNOA Máxima Actualidad (IGN)",
+          "url" : "www.ign.es/wms-inspire/pnoa-ma"
+        } ]
+      } ]
+    }
+  } ],
+  "trees" : [ {
+    "id" : "tree/37",
+    "title" : "IDEBarcelona genèric",
+    "type" : null,
+    "image" : "https://media.diba.cat/diba/maqueta/logos/logo-diba.png",
+    "rootNode" : "node/tree/37",
+    "nodes" : {
+      "node/12342" : {
+        "uri" : null,
+        "title" : "Números de portal",
+        "description" : null,
+        "resource" : "layer/4625",
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 2,
+        "mapping" : null,
+        "children" : null
+      },
+      "node/12353" : {
+        "uri" : null,
+        "title" : "Municipis a escala 50000",
+        "description" : null,
+        "resource" : "layer/4643",
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 2,
+        "mapping" : null,
+        "children" : null
+      },
+      "node/12341" : {
+        "uri" : null,
+        "title" : "Carrers",
+        "description" : null,
+        "resource" : "layer/4623",
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 1,
+        "mapping" : null,
+        "children" : null
+      },
+      "node/12340" : {
+        "uri" : null,
+        "title" : "Illes urbanes",
+        "description" : null,
+        "resource" : "layer/4624",
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 0,
+        "mapping" : null,
+        "children" : null
+      },
+      "node/tree/37" : {
+        "uri" : null,
+        "title" : "IDEBarcelona genèric",
+        "description" : null,
+        "resource" : null,
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : null,
+        "mapping" : null,
+        "children" : [ "node/12338", "node/12344" ]
+      },
+      "node/12344" : {
+        "uri" : null,
+        "title" : "Delimitacions territorials (ICGC)",
+        "description" : "Delimitacions territorials (ICGC)",
+        "resource" : null,
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 3,
+        "mapping" : null,
+        "children" : [ "node/12353" ]
+      },
+      "node/12343" : {
+        "uri" : null,
+        "title" : "Edificis en disseminat",
+        "description" : null,
+        "resource" : "layer/4629",
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 3,
+        "mapping" : null,
+        "children" : null
+      },
+      "node/12339" : {
+        "uri" : null,
+        "title" : "Adreces",
+        "description" : null,
+        "resource" : null,
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 0,
+        "mapping" : null,
+        "children" : [ "node/12340", "node/12341", "node/12342", "node/12343" ]
+      },
+      "node/12338" : {
+        "uri" : null,
+        "title" : "Gestió municipal",
+        "description" : null,
+        "resource" : null,
+        "action" : null,
+        "isRadio" : null,
+        "loadData" : false,
+        "type" : null,
+        "viewMode" : null,
+        "image" : null,
+        "order" : 2,
+        "mapping" : null,
+        "children" : [ "node/12339" ]
+      }
+    }
+  } ],
+  "global" : {
+    "proxy" : "http://localhost:9000",
+    "language.default" : "en",
+    "srs.default.identifier" : "EPSG:25831",
+    "srs.default.x" : "x",
+    "srs.default.proj4" : "+proj=utm +zone=31 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
+    "srs.default.y" : "y"
+  }
+}

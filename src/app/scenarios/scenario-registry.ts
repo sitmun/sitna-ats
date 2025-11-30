@@ -34,6 +34,10 @@ import {
   FeatureInfoSilmeControlComponent,
   SCENARIO_METADATA as FeatureInfoSilmeControlMetadata,
 } from './feature-info-silme-control/feature-info-silme-control.component';
+import {
+  LayerCatalogSilmeFoldersControlComponent,
+  SCENARIO_METADATA as LayerCatalogSilmeFoldersControlMetadata,
+} from './layer-catalog-silme-folders-control/layer-catalog-silme-folders-control.component';
 
 /**
  * Register all scenarios with the registry service
@@ -83,6 +87,11 @@ export function registerScenarios(
       componentClass: FeatureInfoSilmeControlComponent,
       selector: 'app-feature-info-silme-control',
     },
+    {
+      ...LayerCatalogSilmeFoldersControlMetadata,
+      componentClass: LayerCatalogSilmeFoldersControlComponent,
+      selector: 'app-layer-catalog-silme-folders-control',
+    },
   ];
 
   registrations.forEach((registration) => {
@@ -105,6 +114,7 @@ export function getScenarioComponents(): (new (...args: unknown[]) => unknown)[]
     BasemapSelectorSilmeControlComponent,
     HelloWorldControlComponent,
     FeatureInfoSilmeControlComponent,
+    LayerCatalogSilmeFoldersControlComponent,
   ];
 }
 

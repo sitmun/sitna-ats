@@ -1,0 +1,38 @@
+:host {
+  display: block;
+}
+
+.scenario-container {
+  width: 100%;
+}
+
+.map-container {
+  height: 480px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.config-override-section {
+  margin-bottom: 16px;
+
+  mat-card {
+    margin-bottom: 16px;
+  }
+
+  .url-input {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .loading-bar {
+    margin-top: 8px;
+  }
+}
+

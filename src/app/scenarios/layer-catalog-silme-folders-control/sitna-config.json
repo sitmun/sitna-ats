@@ -1,0 +1,13 @@
+{
+  "baseLayers": ["ign-base", "ign-mtn", "ign-pnoa"],
+  "defaultBaseLayer": "ign-base",
+  "appConfigPath": "assets/config/layer-catalog-silme-folders-control/app-config.json",
+  "controls": {
+    "layerCatalogSilmeFolders": {
+      "div": "tc-slot-toc",
+      "enableSearch": true,
+      "layers": []
+    }
+  }
+}
+

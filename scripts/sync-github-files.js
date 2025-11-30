@@ -35,6 +35,21 @@ const SCENARIO_CONFIG = {
       'templates/BasemapSelectorSilme.hbs',
       'templates/BasemapSelectorNodeSilme.hbs'
     ]
+  },
+  'layer-catalog-silme-folders-control': {
+    githubPath: 'src/assets/js/patch',
+    localPath: path.join(__dirname, '..', 'src', 'app', 'scenarios', 'layer-catalog-silme-folders-control', 'src'),
+    files: [
+      'SilmeTree.js',
+      'SilmeMap.js',
+      'controls/LayerCatalogSilmeFolders.js',
+      'templates/LayerCatalogSilme.hbs',
+      'templates/LayerCatalogNodeSilmeFolders.hbs',
+      'templates/LayerCatalogBranchSilmeFolders.hbs',
+      'templates/LayerCatalogInfoSilme.hbs',
+      'templates/LayerCatalogResultsSilme.hbs',
+      'templates/LayerCatalogProjSilme.hbs'
+    ]
   }
 };
 
@@ -49,16 +64,17 @@ if (!config) {
 /**
  * Fetch a file from GitHub raw content
  */
-function fetchFileFromGitHub(filePath) {
+function fetchFileFromGitHub(filePath, customGithubPath) {
   return new Promise((resolve, reject) => {
-    const url = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${config.githubPath}/${filePath}`;
+    const githubPath = customGithubPath || config.githubPath;
+    const url = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${githubPath}/${filePath}`;
 
     console.log(`Fetching: ${url}`);
 
     https.get(url, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
         // Handle redirects
-        return fetchFileFromGitHub(filePath).then(resolve).catch(reject);
+        return fetchFileFromGitHub(filePath, customGithubPath).then(resolve).catch(reject);
       }
 
       if (res.statusCode !== 200) {
@@ -92,19 +108,32 @@ function ensureDirectory(dirPath) {
 /**
  * Sync a single file
  */
-async function syncFile(filePath) {
+async function syncFile(fileEntry) {
   try {
-    const content = await fetchFileFromGitHub(filePath);
-    const localFilePath = path.join(config.localPath, filePath);
+    let filePath, customGithubPath, localFilePath;
+
+    // Support both string paths and objects with custom paths
+    if (typeof fileEntry === 'string') {
+      filePath = fileEntry;
+      localFilePath = path.join(config.localPath, filePath);
+    } else {
+      // Object with custom GitHub path and local path
+      filePath = fileEntry.filePath;
+      customGithubPath = fileEntry.githubPath;
+      localFilePath = path.join(config.localPath, fileEntry.localPath);
+    }
+
+    const content = await fetchFileFromGitHub(filePath, customGithubPath);
     const localDir = path.dirname(localFilePath);
 
     ensureDirectory(localDir);
 
     fs.writeFileSync(localFilePath, content, 'utf8');
-    console.log(`✓ Synced: ${filePath}`);
+    console.log(`✓ Synced: ${filePath} -> ${localFilePath}`);
 
     return true;
   } catch (error) {
+    const filePath = typeof fileEntry === 'string' ? fileEntry : fileEntry.filePath;
     console.error(`✗ Failed to sync ${filePath}:`, error.message);
     return false;
   }
